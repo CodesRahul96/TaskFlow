@@ -176,11 +176,11 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen overflow-hidden">
       {/* Task list panel */}
-      <div className={`flex flex-col ${selectedTask ? 'w-1/2' : 'flex-1'} transition-all duration-300`}>
+      <div className={`flex flex-col ${selectedTask ? 'hidden md:flex md:w-1/2' : 'flex-1'} transition-all duration-300`}>
         {/* Header */}
-        <div className="flex-shrink-0 p-5 border-b border-border-subtle">
+        <div className="flex-shrink-0 p-4 md:p-5 border-b border-border-subtle">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-display font-bold text-text-primary">Tasks</h1>
             <div className="flex items-center gap-2">
@@ -189,9 +189,9 @@ export default function TasksPage() {
               </button>
               <button
                 onClick={() => { setEditTask(null); setShowModal(true); }}
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary flex items-center gap-2 text-sm"
               >
-                <Plus size={16} /> New Task
+                <Plus size={16} /> <span className="hidden sm:inline">New Task</span>
               </button>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function TasksPage() {
               onClick={() => setShowFilters(!showFilters)}
               className={`btn-ghost flex items-center gap-1.5 px-3 text-sm ${showFilters ? 'text-accent-glow' : ''}`}
             >
-              <Filter size={15} /> Filters
+              <Filter size={15} /> <span className="hidden sm:inline">Filters</span>
             </button>
           </div>
 
@@ -312,7 +312,7 @@ export default function TasksPage() {
 
       {/* Task detail panel */}
       {selectedTask && (
-        <div className="w-1/2 border-l border-border-subtle animate-slide-in overflow-hidden">
+        <div className="w-full md:w-1/2 border-l border-border-subtle animate-slide-in overflow-hidden">
           <TaskDetail
             task={selectedTask}
             onEdit={() => { setEditTask(selectedTask); setShowModal(true); }}

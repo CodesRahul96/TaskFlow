@@ -66,16 +66,16 @@ export default function AuditPage() {
   }, {});
 
   return (
-    <div className="p-6 max-w-3xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-display font-bold text-text-primary">Audit Trail</h1>
+          <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary">Audit Trail</h1>
           <p className="text-text-muted text-sm mt-1">Your recent activity history</p>
         </div>
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-text-muted" />
           <select
-            className="input-field text-sm py-1.5 w-auto"
+            className="input-field text-sm py-1.5 w-full sm:w-auto"
             value={filter}
             onChange={e => setFilter(e.target.value)}
           >

@@ -58,8 +58,12 @@ function TimeBlockEventModal({ event, onClose, onDelete }) {
 
 function WeekView({ date, events, onEventClick, onSlotClick }) {
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const allDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const now = new Date();
+
+  // On mobile, we only show 3 days (around today or the start of the week)
+  // For simplicity, we'll just slice the array based on a media query (handled by CSS)
+  const days = allDays; 
 
   const getEventsForDay = (day) =>
     events.filter(e => isSameDay(new Date(e.start), day));
@@ -79,15 +83,15 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Day headers */}
-      <div className="grid grid-cols-8 border-b border-border-subtle flex-shrink-0">
-        <div className="p-3" /> {/* Time gutter */}
-        {days.map(day => (
+      <div className="grid grid-cols-4 md:grid-cols-8 border-b border-border-subtle flex-shrink-0">
+        <div className="p-2 md:p-3" /> {/* Time gutter */}
+        {days.map((day, idx) => (
           <div
             key={day.toString()}
-            className={`p-3 text-center border-l border-border-subtle ${isToday(day) ? 'bg-accent-primary/10' : ''}`}
+            className={`p-2 md:p-3 text-center border-l border-border-subtle ${isToday(day) ? 'bg-accent-primary/10' : ''} ${idx >= 3 ? 'hidden md:block' : ''}`}
           >
-            <p className="text-xs text-text-muted uppercase">{format(day, 'EEE')}</p>
-            <p className={`text-lg font-bold mt-0.5 ${isToday(day) ? 'text-accent-glow' : 'text-text-primary'}`}>
+            <p className="text-[10px] md:text-xs text-text-muted uppercase">{format(day, 'EEE')}</p>
+            <p className={`text-sm md:text-lg font-bold mt-0.5 ${isToday(day) ? 'text-accent-glow' : 'text-text-primary'}`}>
               {format(day, 'd')}
             </p>
           </div>
@@ -96,12 +100,12 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
 
       {/* Time grid */}
       <div className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-8 relative" style={{ height: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}>
+        <div className="grid grid-cols-4 md:grid-cols-8 relative" style={{ height: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}>
           {/* Hour labels */}
           <div className="col-span-1">
             {HOURS.map(hour => (
-              <div key={hour} style={{ height: `${HOUR_HEIGHT}px` }} className="flex items-start justify-end pr-3 pt-1">
-                <span className="text-xs text-text-muted font-mono">
+              <div key={hour} style={{ height: `${HOUR_HEIGHT}px` }} className="flex items-start justify-end pr-2 md:pr-3 pt-1">
+                <span className="text-[10px] md:text-xs text-text-muted font-mono">
                   {format(setHours(new Date(), hour), 'h a')}
                 </span>
               </div>
@@ -112,7 +116,7 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
           {days.map((day, di) => (
             <div
               key={day.toString()}
-              className={`col-span-1 relative border-l border-border-subtle ${isToday(day) ? 'bg-accent-primary/5' : ''}`}
+              className={`col-span-1 relative border-l border-border-subtle ${isToday(day) ? 'bg-accent-primary/5' : ''} ${di >= 3 ? 'hidden md:block' : ''}`}
               style={{ height: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}
             >
               {/* Hour lines */}
@@ -135,7 +139,7 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
                   style={{ top: nowStyle.top }}
                 >
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-neon-red -ml-1" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-neon-red -ml-0.5 md:-ml-1" />
                     <div className="flex-1 h-0.5 bg-neon-red" />
                   </div>
                 </div>
@@ -147,13 +151,13 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
                 return (
                   <div
                     key={event.id}
-                    className="absolute left-1 right-1 rounded-md px-1.5 py-1 cursor-pointer hover:brightness-110 transition-all z-20 overflow-hidden"
-                    style={{ ...style, backgroundColor: event.color + 'dd', borderLeft: `3px solid ${event.color}` }}
+                    className="absolute left-0.5 right-0.5 rounded-md px-1 py-0.5 cursor-pointer hover:brightness-110 transition-all z-20 overflow-hidden"
+                    style={{ ...style, backgroundColor: event.color + 'dd', borderLeft: `2px solid ${event.color}` }}
                     onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
                   >
-                    <p className="text-xs font-medium text-white leading-tight truncate">{event.title}</p>
-                    <p className="text-xs text-white/70 leading-tight">
-                      {format(new Date(event.start), 'h:mm')}–{format(new Date(event.end), 'h:mm a')}
+                    <p className="text-[10px] font-medium text-white leading-tight truncate">{event.title}</p>
+                    <p className="text-[9px] text-white/70 leading-tight">
+                      {format(new Date(event.start), 'h:mm')}
                     </p>
                   </div>
                 );
@@ -309,33 +313,33 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col h-screen bg-bg-primary">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-display font-bold text-text-primary">Calendar</h1>
-          <div className="flex items-center gap-1 bg-surface-1 rounded-lg p-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-border-subtle flex-shrink-0 gap-3">
+        <div className="flex items-center gap-3 md:gap-4 overflow-x-auto no-scrollbar">
+          <h1 className="text-lg md:text-xl font-display font-bold text-text-primary">Calendar</h1>
+          <div className="flex items-center gap-1 bg-surface-1 rounded-lg p-1 flex-shrink-0">
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors rounded"
+              className="px-2 md:px-3 py-1.5 text-[10px] md:text-xs text-text-secondary hover:text-text-primary transition-colors rounded"
             >
               Today
             </button>
             <button onClick={() => navigate(-1)} className="p-1.5 text-text-muted hover:text-text-primary transition-colors rounded">
-              <ChevronLeft size={16} />
+              <ChevronLeft size={14} />
             </button>
             <button onClick={() => navigate(1)} className="p-1.5 text-text-muted hover:text-text-primary transition-colors rounded">
-              <ChevronRight size={16} />
+              <ChevronRight size={14} />
             </button>
           </div>
-          <span className="font-semibold text-text-primary">{title}</span>
+          <span className="font-semibold text-text-primary text-xs md:text-base whitespace-nowrap">{title}</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2">
           <div className="flex items-center bg-surface-1 rounded-lg p-1">
             {['week', 'month'].map(v => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`px-3 py-1.5 text-xs font-medium capitalize rounded transition-all ${
+                className={`px-3 py-1.5 text-[10px] md:text-xs font-medium capitalize rounded transition-all ${
                   view === v ? 'bg-accent-primary text-white shadow-glow-sm' : 'text-text-muted hover:text-text-primary'
                 }`}
               >
@@ -343,8 +347,8 @@ export default function CalendarPage() {
               </button>
             ))}
           </div>
-          <button onClick={() => openAddModal()} className="btn-primary flex items-center gap-2 text-xs px-3 py-2">
-            <Plus size={14} /> Schedule Block
+          <button onClick={() => openAddModal()} className="btn-primary flex items-center gap-2 text-[10px] md:text-xs px-2 md:px-3 py-2">
+            <Plus size={14} /> <span className="hidden sm:inline">Schedule</span>
           </button>
         </div>
       </div>

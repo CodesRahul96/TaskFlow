@@ -5,12 +5,32 @@
 @tailwind utilities;
 
 @layer base {
-  html { font-family: "Inter", sans-serif; }
-  body { @apply bg-bg-primary text-text-primary; }
-  * { @apply box-border; }
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { @apply bg-transparent; }
-  ::-webkit-scrollbar-thumb { @apply bg-border-default rounded-full; }
+  html {
+    font-family: "Inter", sans-serif;
+  }
+  body {
+    @apply bg-bg-primary text-text-primary;
+  }
+  * {
+    @apply box-border;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-default rounded-full;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 @layer components {
@@ -41,13 +61,29 @@
     @apply bg-surface-2 animate-pulse rounded-lg;
   }
   /* Priority tags */
-  .priority-urgent  { @apply bg-pink-500/20   text-pink-400   border border-pink-500/30; }
-  .priority-high    { @apply bg-red-500/20    text-red-400    border border-red-500/30; }
-  .priority-medium  { @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30; }
-  .priority-low     { @apply bg-green-500/20  text-green-400  border border-green-500/30; }
+  .priority-urgent {
+    @apply bg-pink-500/20   text-pink-400   border border-pink-500/30;
+  }
+  .priority-high {
+    @apply bg-red-500/20    text-red-400    border border-red-500/30;
+  }
+  .priority-medium {
+    @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+  }
+  .priority-low {
+    @apply bg-green-500/20  text-green-400  border border-green-500/30;
+  }
   /* Status tags */
-  .status-todo        { @apply bg-slate-500/20  text-slate-400  border border-slate-500/30; }
-  .status-in-progress { @apply bg-blue-500/20   text-blue-400   border border-blue-500/30; }
-  .status-completed   { @apply bg-green-500/20  text-green-400  border border-green-500/30; }
-  .status-cancelled   { @apply bg-red-500/20    text-red-400    border border-red-500/30; }
+  .status-todo {
+    @apply bg-slate-500/20  text-slate-400  border border-slate-500/30;
+  }
+  .status-in-progress {
+    @apply bg-blue-500/20   text-blue-400   border border-blue-500/30;
+  }
+  .status-completed {
+    @apply bg-green-500/20  text-green-400  border border-green-500/30;
+  }
+  .status-cancelled {
+    @apply bg-red-500/20    text-red-400    border border-red-500/30;
+  }
 }

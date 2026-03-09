@@ -76,27 +76,27 @@ export default function Dashboard() {
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-display font-bold text-text-primary">
+          <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary">
             {isGuest ? 'Welcome to TaskFlow' : `Good ${getGreeting()}, ${user?.name?.split(' ')[0]}`}
           </h1>
-          <p className="text-text-muted mt-1">
+          <p className="text-text-muted mt-1 text-sm">
             {format(new Date(), 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
         <Link
           to="/tasks"
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center justify-center gap-2"
         >
           <Plus size={16} /> New Task
         </Link>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 md:mb-8">
         <StatCard icon={CheckSquare} label="Total Tasks" value={total} color="bg-accent-primary/20 text-accent-glow" />
         <StatCard icon={TrendingUp} label="Completed" value={completed} color="bg-neon-green/20 text-neon-green" sub={`${completionRate}% rate`} />
         <StatCard icon={Clock} label="In Progress" value={inProgress} color="bg-neon-blue/20 text-neon-blue" />

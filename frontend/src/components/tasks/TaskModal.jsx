@@ -74,8 +74,8 @@ export default function TaskModal({ task, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-bg-secondary border border-border-default rounded-2xl w-full max-w-lg shadow-glow-lg animate-slide-up max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+      <div className="bg-bg-secondary border-t sm:border border-border-default rounded-t-2xl sm:rounded-2xl w-full max-w-lg shadow-glow-lg animate-slide-up h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border-subtle">
           <h2 className="font-display font-bold text-lg text-text-primary">

@@ -39,7 +39,7 @@ export default function Login() {
         </div>
 
         {/* Form */}
-        <div className="glass rounded-2xl p-8 border border-border-default">
+        <div className="glass rounded-2xl p-6 sm:p-8 border border-border-default">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">Email</label>

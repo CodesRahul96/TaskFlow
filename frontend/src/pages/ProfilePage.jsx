@@ -76,8 +76,8 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="p-6 max-w-2xl mx-auto animate-fade-in">
-      <h1 className="text-2xl font-display font-bold text-text-primary mb-6">Settings</h1>
+    <div className="p-4 md:p-6 max-w-2xl mx-auto animate-fade-in">
+      <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary mb-6">Settings</h1>
 
       <div className="flex border-b border-border-subtle mb-6">
         {tabs.map(t => (

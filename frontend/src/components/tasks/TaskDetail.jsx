@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Check, Clock, MessageSquare, Activity, ChevronDown, Edit2, Calendar } from 'lucide-react';
+import { X, Plus, Trash2, Check, Clock, MessageSquare, Activity, ChevronDown, Edit2, Calendar, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import useTaskStore from '../../store/taskStore';
 import useAuthStore from '../../store/authStore';
@@ -218,10 +218,13 @@ export default function TaskDetail({ task, onEdit, onClose }) {
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={onEdit} className="btn-ghost p-2">
+          <button onClick={onEdit} className="btn-ghost p-2" title="Edit">
             <Edit2 size={16} />
           </button>
-          <button onClick={onClose} className="btn-ghost p-2">
+          <button onClick={onClose} className="btn-ghost p-2 md:hidden" title="Back to list">
+             <ArrowLeft size={16} />
+          </button>
+          <button onClick={onClose} className="hidden md:block btn-ghost p-2" title="Close">
             <X size={16} />
           </button>
         </div>
