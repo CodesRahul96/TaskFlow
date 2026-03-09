@@ -1,7 +1,11 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "/api",
+  // VITE_API_URL is set in production (Vercel/Netlify env vars).
+  // Falls back to "/api" for local dev — Vite proxy forwards to localhost:5000.
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : "/api",
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
 });
@@ -23,7 +27,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 export default api;
