@@ -60,8 +60,8 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {});
 });
 
-// DB + Start — skipped when running as a Vercel Serverless Function
-if (process.env.VERCEL !== "1") {
+// DB + Start — skipped when running as a Serverless Function (Vercel/Netlify)
+if (process.env.VERCEL !== "1" && process.env.NETLIFY !== "true") {
   connectDB().then(() => {
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () =>
@@ -70,5 +70,5 @@ if (process.env.VERCEL !== "1") {
   });
 }
 
-// Export app for serverless adapters (Vercel)
+// Export app for serverless adapters
 module.exports = app;

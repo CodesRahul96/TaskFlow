@@ -10,7 +10,8 @@ export const useSocket = (enabled = true) => {
   useEffect(() => {
     if (!enabled) return;
 
-    socket = io("/", { transports: ["websocket", "polling"] });
+    const socketUrl = import.meta.env.VITE_API_URL || "/";
+    socket = io(socketUrl, { transports: ["websocket", "polling"] });
 
     socket.on("task-created", ({ task }) => handleSocketUpdate(task));
     socket.on("task-updated", ({ task }) => handleSocketUpdate(task));
@@ -23,7 +24,7 @@ export const useSocket = (enabled = true) => {
   }, [enabled]);
 
   return {
-    joinTask:  (taskId) => socket?.emit("join-task",  taskId),
+    joinTask: (taskId) => socket?.emit("join-task", taskId),
     leaveTask: (taskId) => socket?.emit("leave-task", taskId),
   };
 };
