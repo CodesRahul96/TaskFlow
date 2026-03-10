@@ -10,7 +10,9 @@ exports.register = async (req, res, next) => {
       return res.status(400).json({ message: "Email already registered" });
     const user = await User.create({ name, email, password });
     res.status(201).json({ token: generateToken(user._id), user });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // POST /api/auth/login
@@ -22,7 +24,9 @@ exports.login = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid email or password" });
     user.password = undefined;
     res.json({ token: generateToken(user._id), user });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // GET /api/auth/me
@@ -37,10 +41,12 @@ exports.updateProfile = async (req, res, next) => {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { name, avatar },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
     res.json({ user });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // PUT /api/auth/password
@@ -53,5 +59,7 @@ exports.changePassword = async (req, res, next) => {
     user.password = newPassword;
     await user.save();
     res.json({ message: "Password updated" });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };

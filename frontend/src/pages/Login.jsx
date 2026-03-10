@@ -1,18 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
+  const [errors, setErrors] = useState({});
   const { login, loading, setGuestMode } = useAuthStore();
   const navigate = useNavigate();
 
+  // Real-time validation
+  useEffect(() => {
+    const validate = () => {
+      const newErrors = {};
+      if (form.email && !/\S+@\S+\.\S+/.test(form.email)) newErrors.email = 'Invalid email format';
+      setErrors(newErrors);
+    };
+    validate();
+  }, [form]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (Object.keys(errors).length > 0) return;
+    
     const result = await login(form.email, form.password);
-    if (result.success) navigate('/');
+    if (result.success) {
+      navigate('/');
+    } else if (result.errors) {
+      const serverErrors = {};
+      result.errors.forEach(err => {
+        serverErrors[err.field] = err.message;
+      });
+      setErrors(f => ({ ...f, ...serverErrors }));
+    } else if (result.message) {
+      setErrors(f => ({ ...f, general: result.message }));
+    }
   };
 
   const handleGuest = () => {
@@ -40,6 +63,12 @@ export default function Login() {
 
         {/* Form */}
         <div className="glass rounded-2xl p-6 sm:p-8 border border-border-default">
+          {errors.general && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex items-center gap-2">
+              <ShieldAlert size={16} /> {errors.general}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">Email</label>
@@ -47,13 +76,14 @@ export default function Login() {
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                   type="email"
-                  className="input-field pl-9"
+                  className={`input-field pl-9 ${errors.email ? 'border-red-500/50' : ''}`}
                   placeholder="you@example.com"
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                   required
                 />
               </div>
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -62,7 +92,7 @@ export default function Login() {
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
                   type={showPass ? 'text' : 'password'}
-                  className="input-field pl-9 pr-10"
+                  className={`input-field pl-9 pr-10 ${errors.password ? 'border-red-500/50' : ''}`}
                   placeholder="••••••••"
                   value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
@@ -76,12 +106,13 @@ export default function Login() {
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3"
+              disabled={loading || Object.keys(errors).length > 0}
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -115,3 +146,4 @@ export default function Login() {
     </div>
   );
 }
+
