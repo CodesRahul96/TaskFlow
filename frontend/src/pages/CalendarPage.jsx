@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Plus, Calendar, Clock, X } from 'lucide-reac
 import useTaskStore from '../store/taskStore';
 import useAuthStore from '../store/authStore';
 import api from '../api/client';
+import Loader from '../components/ui/Loader';
 
 const HOUR_HEIGHT = 60; // px per hour
 const START_HOUR = 6;
@@ -434,7 +435,7 @@ export default function CalendarPage() {
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowAddModal(false)} className="btn-ghost flex-1">Cancel</button>
                 <button type="submit" disabled={addLoading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                  {addLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Add Block'}
+                  {addLoading ? <Loader variant="spinner" size="sm" /> : 'Add Block'}
                 </button>
               </div>
             </form>

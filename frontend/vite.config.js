@@ -45,6 +45,7 @@ export default defineConfig({
       "/socket.io": {
         target: "http://localhost:5000",
         ws: true,
+        changeOrigin: true,
         configure: (proxy) => {
           proxy.on("error", (err) => {
             if (err.code === "ECONNABORTED" || err.code === "ECONNRESET")

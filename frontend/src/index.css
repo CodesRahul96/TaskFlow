@@ -58,7 +58,35 @@
     @apply bg-surface-1/80 backdrop-blur-md border border-border-subtle;
   }
   .skeleton {
-    @apply bg-surface-2 animate-pulse rounded-lg;
+    @apply relative overflow-hidden bg-surface-2 rounded-lg;
+  }
+  .skeleton::after {
+    @apply absolute inset-0 content-[''];
+    background: linear-gradient(
+      90deg,
+      transparent,
+      theme('colors.surface-3' / 20%),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulsate {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.95); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+  .animate-pulsate {
+    animation: pulsate 2s ease-in-out infinite;
   }
   /* Priority tags */
   .priority-urgent {

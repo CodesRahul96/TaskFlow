@@ -4,6 +4,7 @@ import { CheckSquare, Clock, AlertCircle, TrendingUp, Plus, Calendar, ArrowRight
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import useAuthStore from '../store/authStore';
 import useTaskStore from '../store/taskStore';
+import Loader from '../components/ui/Loader';
 
 const PRIORITY_COLORS = {
   urgent: 'text-neon-red',
@@ -144,7 +145,7 @@ export default function Dashboard() {
           {loading ? (
             <div className="space-y-3">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="skeleton h-16 rounded-xl" />
+                <Loader key={i} variant="skeleton" className="h-16 rounded-xl" />
               ))}
             </div>
           ) : recentTasks.length === 0 ? (

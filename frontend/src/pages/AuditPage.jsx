@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { Activity, Filter, Clock, User, CheckSquare } from 'lucide-react';
 import api from '../api/client';
+import Loader from '../components/ui/Loader';
 
 const ACTION_ICONS = {
   task_created: '✨',
@@ -92,7 +93,9 @@ export default function AuditPage() {
 
       {loading ? (
         <div className="space-y-3">
-          {[...Array(6)].map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+          {[...Array(6)].map((_, i) => (
+            <Loader key={i} variant="skeleton" className="h-16 rounded-xl" />
+          ))}
         </div>
       ) : Object.keys(grouped).length === 0 ? (
         <div className="card text-center py-12">

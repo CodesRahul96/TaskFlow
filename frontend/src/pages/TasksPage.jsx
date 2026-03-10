@@ -17,6 +17,7 @@ import useTaskStore from '../store/taskStore';
 import useAuthStore from '../store/authStore';
 import TaskModal from '../components/tasks/TaskModal';
 import TaskDetail from '../components/tasks/TaskDetail';
+import Loader from '../components/ui/Loader';
 
 const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_DOT = { urgent: 'bg-neon-red', high: 'bg-neon-yellow', medium: 'bg-neon-blue', low: 'bg-neon-green' };
@@ -264,7 +265,9 @@ export default function TasksPage() {
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
             <div className="space-y-3">
-              {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-20 rounded-xl" />)}
+              {[...Array(5)].map((_, i) => (
+                <Loader key={i} variant="skeleton" className="h-20 rounded-xl" />
+              ))}
             </div>
           ) : sortedTasks.length === 0 ? (
             <div className="text-center py-16">

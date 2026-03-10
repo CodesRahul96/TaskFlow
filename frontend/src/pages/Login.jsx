@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import Loader from '../components/ui/Loader';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -115,7 +116,7 @@ export default function Login() {
               className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <Loader variant="spinner" size="sm" />
               ) : (
                 <>Sign In <ArrowRight size={16} /></>
               )}

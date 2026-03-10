@@ -3,6 +3,7 @@ import { User, Mail, Lock, Users, Search, UserPlus, Check, X } from 'lucide-reac
 import useAuthStore from '../store/authStore';
 import api from '../api/client';
 import toast from 'react-hot-toast';
+import Loader from '../components/ui/Loader';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuthStore();
@@ -145,8 +146,8 @@ export default function ProfilePage() {
               <input type="password" className="input-field pl-9" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Min. 6 characters" minLength={6} />
             </div>
           </div>
-          <button onClick={handlePasswordChange} disabled={loading} className="btn-primary w-full">
-            {loading ? 'Changing...' : 'Change Password'}
+          <button onClick={handlePasswordChange} disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
+            {loading ? <Loader variant="spinner" size="sm" /> : 'Change Password'}
           </button>
         </div>
       )}

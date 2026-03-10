@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import useTaskStore from '../../store/taskStore';
 import useAuthStore from '../../store/authStore';
 import api from '../../api/client';
+import Loader from '../ui/Loader';
 
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const STATUSES = ['todo', 'in-progress', 'completed', 'cancelled'];
@@ -286,7 +287,7 @@ export default function TaskModal({ task, onClose }) {
               Cancel
             </button>
             <button type="submit" disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-              {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (isEditing ? 'Save Changes' : 'Create Task')}
+              {loading ? <Loader variant="spinner" size="sm" /> : (isEditing ? 'Save Changes' : 'Create Task')}
             </button>
           </div>
         </form>
