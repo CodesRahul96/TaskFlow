@@ -9,11 +9,32 @@ import TasksPage from "./pages/TasksPage";
 import CalendarPage from "./pages/CalendarPage";
 import AuditPage from "./pages/AuditPage";
 import ProfilePage from "./pages/ProfilePage";
+import NotFound from "./pages/NotFound";
+import OfflinePage from "./pages/OfflinePage";
 import { useSocket } from "./hooks/useSocket";
+import { useEffect } from "react";
 
 function AppRoutes() {
-  const { token, isGuest } = useAuthStore();
+  const { token, isGuest, isOnline, setOnline } = useAuthStore();
   useSocket(!!token);
+
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [setOnline]);
+
+  if (!isOnline) {
+    return <OfflinePage />;
+  }
+
   const isAuth = !!token;
 
   return (
@@ -30,7 +51,7 @@ function AppRoutes() {
         <Route path="audit"    element={isAuth ? <AuditPage />   : <Navigate to="/login" />} />
         <Route path="profile"  element={isAuth ? <ProfilePage /> : <Navigate to="/login" />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

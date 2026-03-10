@@ -92,7 +92,7 @@ export default function Register() {
                 <input
                   type="text"
                   className={`input-field pl-9 ${errors.name ? 'border-red-500/50' : ''}`}
-                  placeholder="John Doe"
+                  placeholder="Peter Parker"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   required

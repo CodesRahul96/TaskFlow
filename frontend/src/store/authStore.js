@@ -7,6 +7,9 @@ const useAuthStore = create((set, get) => ({
   token:   localStorage.getItem('tf_token') || null,
   loading: false,
   isGuest: !localStorage.getItem('tf_token'),
+  isOnline: navigator.onLine,
+
+  setOnline: (status) => set({ isOnline: status }),
 
   login: async (email, password) => {
     set({ loading: true });
