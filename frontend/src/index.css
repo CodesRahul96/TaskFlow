@@ -65,7 +65,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      theme('colors.surface-3' / 20%),
+      theme('colors.text-primary' / 10%),
       transparent
     );
     animation: shimmer 1.5s infinite;
@@ -113,5 +113,11 @@
   }
   .status-cancelled {
     @apply bg-red-500/20    text-red-400    border border-red-500/30;
+  }
+  .glass-card {
+    @apply bg-surface-1/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+  }
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-primary to-neon-purple font-bold;
   }
 }

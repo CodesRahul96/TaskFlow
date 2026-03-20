@@ -21,7 +21,8 @@ router.post("/login", authLimiter,
   ],
   validate, ctrl.login);
 
-
+router.get("/verify-email", ctrl.verifyEmail);
+router.get("/verify-login", ctrl.verifyLogin);
 
 router.get("/me", protect, ctrl.getMe);
 router.put("/profile", protect, ctrl.updateProfile);

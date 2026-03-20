@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const Task = require("../models/Task");
 const generateToken = require("../utils/generateToken");
+const sendEmail = require("../utils/sendEmail");
+const crypto = require("crypto");
 
 // POST /api/auth/register
 exports.register = async (req, res, next) => {
@@ -8,8 +10,58 @@ exports.register = async (req, res, next) => {
     const { name, email, password } = req.body;
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Email already registered" });
-    const user = await User.create({ name, email, password });
-    res.status(201).json({ token: generateToken(user._id), user });
+
+    // 1. Create verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+
+    // 2. Create user (isVerified defaults to false)
+    const user = await User.create({
+      name,
+      email,
+      password,
+      verificationToken,
+    });
+
+    // 3. Send verification email
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    const message = `Welcome to TaskFlow, ${name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: "Verify your TaskFlow account",
+        message,
+        html: `<h1>Welcome!</h1><p>Please click <a href="${verifyUrl}">here</a> to verify your account.</p>`,
+      });
+      res.status(201).json({
+        message: "Registration successful! Please check your email to verify your account.",
+      });
+    } catch (err) {
+      // If email fails, we might want to delete the user or just inform them
+      user.verificationToken = undefined;
+      await user.save();
+      return res.status(500).json({ message: "Error sending verification email. Please try again later." });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/auth/verify-email
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    const user = await User.findOne({ verificationToken: token });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid verification link or your email is already verified." });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    await user.save();
+
+    res.json({ message: "Email verified successfully! You can now log in." });
   } catch (err) {
     next(err);
   }
@@ -20,10 +72,66 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email }).select("+password");
-    if (!user || !(await user.comparePassword(password)))
+
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: "Invalid email or password" });
-    user.password = undefined;
-    res.json({ token: generateToken(user._id), user });
+    }
+
+    if (!user.isVerified) {
+      return res.status(401).json({ message: "Please verify your email before logging in" });
+    }
+
+    // Generate login token (Magic Link)
+    const loginToken = crypto.randomBytes(32).toString("hex");
+    user.loginToken = loginToken;
+    user.loginTokenExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    const loginUrl = `${process.env.FRONTEND_URL}/verify-login?token=${loginToken}`;
+    const message = `Click the link below to log in to TaskFlow:\n\n${loginUrl}\n\nThis link expires in 10 minutes.`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: "TaskFlow Login Link",
+        message,
+        html: `<p>Click <a href="${loginUrl}">here</a> to log in to your dashboard. This link expires in 10 minutes.</p>`,
+      });
+      res.json({ message: "Login link sent to your email!" });
+    } catch (err) {
+      user.loginToken = undefined;
+      user.loginTokenExpires = undefined;
+      await user.save();
+      return res.status(500).json({ message: "Error sending magic link. Please try again later." });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/auth/verify-login
+exports.verifyLogin = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    const user = await User.findOne({
+      loginToken: token,
+      loginTokenExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired login link" });
+    }
+
+    // Clear tokens
+    user.loginToken = undefined;
+    user.loginTokenExpires = undefined;
+    await user.save();
+
+    res.json({
+      token: generateToken(user._id),
+      user,
+      message: "Successfully logged in!",
+    });
   } catch (err) {
     next(err);
   }

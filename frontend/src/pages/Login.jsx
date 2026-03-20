@@ -8,6 +8,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
   const { login, loading, setGuestMode } = useAuthStore();
   const navigate = useNavigate();
 
@@ -27,7 +28,7 @@ export default function Login() {
     
     const result = await login(form.email, form.password);
     if (result.success) {
-      navigate('/');
+      setIsMagicLinkSent(true);
     } else if (result.errors) {
       const serverErrors = {};
       result.errors.forEach(err => {
@@ -64,84 +65,109 @@ export default function Login() {
 
         {/* Form */}
         <div className="glass rounded-2xl p-6 sm:p-8 border border-border-default">
-          {errors.general && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex items-center gap-2">
-              <ShieldAlert size={16} /> {errors.general}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">Email</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input
-                  type="email"
-                  className={`input-field pl-9 ${errors.email ? 'border-red-500/50' : ''}`}
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  required
-                />
+          {isMagicLinkSent ? (
+            <div className="text-center space-y-4 py-4 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-accent-primary/10 rounded-full text-accent-primary mb-2">
+                <Mail size={32} />
               </div>
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1.5">Password</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <input
-                  type={showPass ? 'text' : 'password'}
-                  className={`input-field pl-9 pr-10 ${errors.password ? 'border-red-500/50' : ''}`}
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+              <h2 className="text-xl font-bold text-text-primary">Check your email</h2>
+              <p className="text-text-secondary">
+                We've sent a magic login link to <span className="text-text-primary font-medium">{form.email}</span>.
+              </p>
+              <p className="text-text-muted text-sm px-4">
+                The link will expire in 10 minutes. Please click it to sign in to your dashboard.
+              </p>
+              <div className="pt-4">
+                <button 
+                  onClick={() => setIsMagicLinkSent(false)}
+                  className="text-primary-400 hover:text-primary-300 text-sm font-medium"
                 >
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  Back to login form
                 </button>
               </div>
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
-
-            <button
-              type="submit"
-              disabled={loading || Object.keys(errors).length > 0}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <Loader variant="spinner" size="sm" />
-              ) : (
-                <>Sign In <ArrowRight size={16} /></>
+          ) : (
+            <>
+              {errors.general && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex items-center gap-2">
+                  <ShieldAlert size={16} /> {errors.general}
+                </div>
               )}
-            </button>
-          </form>
 
-          <div className="mt-4 flex items-center gap-3">
-            <hr className="flex-1 border-border-subtle" />
-            <span className="text-text-muted text-xs">or</span>
-            <hr className="flex-1 border-border-subtle" />
-          </div>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1.5">Email</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                    <input
+                      type="email"
+                      className={`input-field pl-9 ${errors.email ? 'border-red-500/50' : ''}`}
+                      placeholder="you@example.com"
+                      value={form.email}
+                      onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
 
-          <button
-            onClick={handleGuest}
-            className="mt-4 w-full px-4 py-3 rounded-lg border border-border-default text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-1 transition-all text-sm font-medium"
-          >
-            Continue as Guest
-          </button>
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                    <input
+                      type={showPass ? 'text' : 'password'}
+                      className={`input-field pl-9 pr-10 ${errors.password ? 'border-red-500/50' : ''}`}
+                      placeholder="••••••••"
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                </div>
 
-          <p className="text-center text-text-muted text-sm mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-accent-glow hover:text-white transition-colors font-medium">
-              Sign up
-            </Link>
-          </p>
+                <button
+                  type="submit"
+                  disabled={loading || Object.keys(errors).length > 0}
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <Loader variant="spinner" size="sm" />
+                  ) : (
+                    <>Sign In <ArrowRight size={16} /></>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-4 flex items-center gap-3">
+                <hr className="flex-1 border-border-subtle" />
+                <span className="text-text-muted text-xs">or</span>
+                <hr className="flex-1 border-border-subtle" />
+              </div>
+
+              <button
+                onClick={handleGuest}
+                className="mt-4 w-full px-4 py-3 rounded-lg border border-border-default text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-1 transition-all text-sm font-medium"
+              >
+                Continue as Guest
+              </button>
+
+              <p className="text-center text-text-muted text-sm mt-6">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-accent-glow hover:text-white transition-colors font-medium">
+                  Sign up
+                </Link>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

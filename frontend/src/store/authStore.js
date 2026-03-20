@@ -15,13 +15,9 @@ const useAuthStore = create((set, get) => ({
     set({ loading: true });
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      localStorage.setItem('tf_token', data.token);
-      localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: data.token, loading: false, isGuest: false });
-      toast.success(`Welcome back, ${data.user.name}!`);
-      // Sync any guest tasks to the account
-      get()._syncGuestIfNeeded();
-      return { success: true };
+      set({ loading: false });
+      toast.success(data.message || 'Login link sent to your email!');
+      return { success: true, message: data.message };
     } catch (err) {
       set({ loading: false });
       const msg = err.response?.data?.message || 'Login failed';
@@ -34,15 +30,45 @@ const useAuthStore = create((set, get) => ({
     set({ loading: true });
     try {
       const { data } = await api.post('/auth/register', { name, email, password });
+      set({ loading: false });
+      toast.success(data.message || 'Verification email sent!');
+      return { success: true, message: data.message };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Registration failed';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  verifyEmail: async (token) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.get(`/auth/verify-email?token=${token}`);
+      set({ loading: false });
+      toast.success(data.message);
+      return { success: true };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Verification failed';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  verifyLogin: async (token) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.get(`/auth/verify-login?token=${token}`);
       localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false, isGuest: false });
-      toast.success(`Welcome to TaskFlow, ${data.user.name}!`);
+      toast.success(`Welcome back, ${data.user.name}!`);
       get()._syncGuestIfNeeded();
       return { success: true };
     } catch (err) {
       set({ loading: false });
-      const msg = err.response?.data?.message || 'Registration failed';
+      const msg = err.response?.data?.message || 'Login link invalid or expired';
       toast.error(msg);
       return { success: false, message: msg };
     }

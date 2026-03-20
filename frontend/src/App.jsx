@@ -11,6 +11,8 @@ import AuditPage from "./pages/AuditPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import OfflinePage from "./pages/OfflinePage";
+import VerifyEmail from "./pages/VerifyEmail";
+import VerifyLogin from "./pages/VerifyLogin";
 import { useSocket } from "./hooks/useSocket";
 import { useEffect } from "react";
 
@@ -41,6 +43,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login"    element={!isAuth ? <Login />    : <Navigate to="/" replace />} />
       <Route path="/register" element={!isAuth ? <Register /> : <Navigate to="/" replace />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/verify-login" element={<VerifyLogin />} />
       <Route
         path="/"
         element={isAuth || isGuest ? <Layout /> : <Navigate to="/login" replace />}

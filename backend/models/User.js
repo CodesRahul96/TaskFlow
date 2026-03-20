@@ -7,6 +7,10 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6, select: false },
   avatar:   { type: String, default: "" },
   friends:  [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  isVerified: { type: Boolean, default: false },
+  verificationToken: { type: String },
+  loginToken: { type: String },
+  loginTokenExpires: { type: Date },
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {
