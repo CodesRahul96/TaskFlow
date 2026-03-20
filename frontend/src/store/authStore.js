@@ -11,6 +11,10 @@ const useAuthStore = create((set, get) => ({
 
   setOnline: (status) => set({ isOnline: status }),
 
+  /**
+   * STEP 1: Login Request
+   * Validates credentials and triggers a Magic Link email from the backend.
+   */
   login: async (email, password) => {
     set({ loading: true });
     try {
@@ -26,6 +30,10 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  /**
+   * STEP 2 (Optional): Register
+   * Creates a new account and triggers a verification email.
+   */
   register: async (name, email, password) => {
     set({ loading: true });
     try {
@@ -41,6 +49,10 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  /**
+   * STEP 3: Verify Email
+   * Finalizes registration by verifying the token from the email link.
+   */
   verifyEmail: async (token) => {
     set({ loading: true });
     try {
@@ -56,6 +68,10 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  /**
+   * STEP 4: Verify Login (Magic Link)
+   * Exchanges the temporary login token for a persistent JWT session.
+   */
   verifyLogin: async (token) => {
     set({ loading: true });
     try {

@@ -23,3 +23,8 @@ In production, you **must** set the `VITE_API_URL` environment variable to your 
 ## 📱 PWA
 
 This app is a Progressive Web App. You can install it on your phone or desktop by clicking the install icon in the URL bar. It also caches assets for offline use.
+
+## 🔐 Auth Pages
+
+- `VerifyEmail.jsx`: Handles the incoming token from registration emails.
+- `VerifyLogin.jsx`: Handles the Magic Link token for secure login completion.

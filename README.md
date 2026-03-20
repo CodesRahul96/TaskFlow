@@ -17,14 +17,16 @@ A clean, full-stack task manager that actually helps you schedule your day. It c
 ```bash
 cd backend
 npm install
-npm run dev # Runs on port 5000
+cp .env.example .env  # 👈 Don't forget to set your SMTP & MongoDB vars!
+npm run dev           # Runs on port 5000
 ```
 
 ### 2. The Frontend
 ```bash
 cd frontend
 npm install
-npm run dev # Runs on port 5173
+# Ensure .env has VITE_API_URL=http://localhost:5000
+npm run dev           # Runs on port 5173
 ```
 Now just open `http://localhost:5173`.
 
@@ -32,10 +34,9 @@ Now just open `http://localhost:5173`.
 
 ## ✨ Features that actually work
 - **Task + Time Blocking**: Create a task, then drag a block onto the calendar to "lock in" your focus.
+- **Email Verification**: New accounts require email verification for extra security.
+- **Magic Link Login**: Passwordless, secure login via email (no more forgetting passwords!).
 - **Guest Mode**: You can use the app without an account. It saves to your browser.
-- **Auto-Sync**: If you finally decide to sign up, all your guest tasks move to your account automatically.
-- **Audit Log**: Every single change is logged so you know when you moved that "Urgent" task to next week. 😉
-- **Subtasks & Progress**: Break big tasks down and see the progress bar fill up.
 
 ---
 
@@ -49,5 +50,16 @@ Now just open `http://localhost:5173`.
 - `/frontend`: The UI and all the calendar logic.
 - `/backend`: API, DB schemas, and socket events.
 - `/Project Screenshots`: If you want to see what it looks like before running.
+
+---
+
+## 📝 Technical Implementation Logs
+
+### Email Authentication Flow (March 2026)
+1. **Registration**: User registers -> Backend generates a 32-char hex `verificationToken` -> User is saved as `isVerified: false`.
+2. **Email Verification**: `sendEmail` utility sends a link to `FRONTEND_URL/verify-email?token=...`.
+3. **Verification Page**: Frontend catches the token -> Calls Backend `/api/auth/verify-email` -> User set to `isVerified: true`.
+4. **Login**: User enters email/pass -> Backend generates `loginToken` (10 min expiry) -> Sends Magic Link to email.
+5. **Magic Link Verification**: User clicks link -> Frontend catches `loginToken` -> Calls Backend `/api/auth/verify-login` -> JWT generated and user logged in.
 
 *Built for productivity.* 🚀

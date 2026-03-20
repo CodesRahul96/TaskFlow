@@ -4,6 +4,17 @@ const generateToken = require("../utils/generateToken");
 const sendEmail = require("../utils/sendEmail");
 const crypto = require("crypto");
 
+/**
+ * AUTHENTICATION IMPLEMENTATION STEPS (Email + Magic Link):
+ * 
+ * 1. Register: Create user with `isVerified: false`. Generate `verificationToken` (hex).
+ *    - User is NOT allowed to login until email is verified.
+ * 2. Verify Email: Match `verificationToken` from query string. Set `isVerified: true`.
+ * 3. Login: Verify email/pass. If OK, generate `loginToken` (Magic Link).
+ *    - Magic Link expires in 10 minutes for security.
+ * 4. Verify Login: Match `loginToken`. Generate JWT (long-lived session) and Return User.
+ */
+
 // POST /api/auth/register
 exports.register = async (req, res, next) => {
   try {

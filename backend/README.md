@@ -23,6 +23,20 @@ Make sure you have these set:
 - `MONGODB_URI`: Your local or Atlas URI.
 - `JWT_SECRET`: Something long and random.
 - `CLIENT_URL`: The URL of your frontend (needed for CORS).
+- `EMAIL_HOST`: Your SMTP server (e.g., smtp.gmail.com).
+- `EMAIL_PORT`: SMTP port (usually 587 or 465).
+- `EMAIL_USER`: Your email address.
+- `EMAIL_PASSWORD`: Your email app password.
+- `EMAIL_FROM`: The display email (e.g., noreply@taskflow.dev).
+
+## 🔏 Authentication Flow
+
+The app uses a secure 2-step verification process:
+
+1.  **Register**: Creates a user with `isVerified: false` and sends a verification email.
+2.  **Verify**: User must click the link in their email to activate the account.
+3.  **Login**: Once verified, the user logs in with email/pass. To prevent unauthorized access, a **Magic Link** is sent to their email.
+4.  **Confirm Login**: User clicks the Magic Link to receive their JWT and access the dashboard.
 
 ## 🚀 Deployment (Render.com)
 
