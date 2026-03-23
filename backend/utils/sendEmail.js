@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
 
 const sendEmail = async (options) => {
   try {
@@ -13,13 +14,16 @@ const sendEmail = async (options) => {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD?.replace(/\s+/g, ""),
       },
+      // Force IPv4 to resolve ENETUNREACH errors on certain hosts (Render/Vercel)
+      lookup: (hostname, opts, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
       tls: {
-        // Essential for some hosting providers
         rejectUnauthorized: false,
         servername: process.env.EMAIL_HOST,
       },
-      connectionTimeout: 15000, // Increase to 15s
-      greetingTimeout: 15000,
+      connectionTimeout: 20000, // 20 seconds
+      greetingTimeout: 20000,
     });
 
     // 2) Define the email options
