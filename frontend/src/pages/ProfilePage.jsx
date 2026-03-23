@@ -6,11 +6,11 @@ import toast from 'react-hot-toast';
 import Loader from '../components/ui/Loader';
 
 export default function ProfilePage() {
-  const { user, updateProfile } = useAuthStore();
+  const { user, updateProfile, setupMFA, verifyMFASetup, disableMFA } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mfaSetupData, setMfaSetupData] = useState(null); // { qrCodeUrl, secret }
+  const [mfaCode, setMfaCode] = useState('');
   const [searchQ, setSearchQ] = useState('');
   const [foundUsers, setFoundUsers] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -23,16 +23,28 @@ export default function ProfilePage() {
     setLoading(false);
   };
 
-  const handlePasswordChange = async () => {
-    if (!currentPw || !newPw) return toast.error('Fill both fields');
+  const handleMfaInit = async () => {
     setLoading(true);
-    try {
-      await api.put('/auth/password', { currentPassword: currentPw, newPassword: newPw });
-      toast.success('Password changed');
-      setCurrentPw(''); setNewPw('');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed');
+    const res = await setupMFA();
+    if (res.success) setMfaSetupData(res.data);
+    setLoading(false);
+  };
+
+  const handleMfaVerify = async () => {
+    if (!mfaCode) return toast.error('Enter the code');
+    setLoading(true);
+    const res = await verifyMFASetup(mfaCode);
+    if (res.success) {
+       setMfaSetupData(null);
+       setMfaCode('');
     }
+    setLoading(false);
+  };
+
+  const handleMfaDisable = async () => {
+    if (!window.confirm('Are you sure you want to disable MFA?')) return;
+    setLoading(true);
+    await disableMFA();
     setLoading(false);
   };
 
@@ -130,25 +142,74 @@ export default function ProfilePage() {
       )}
 
       {tab === 'security' && (
-        <div className="card space-y-5">
-          <h2 className="font-semibold text-text-primary">Change Password</h2>
-          <div>
-            <label className="block text-sm text-text-secondary mb-1.5">Current Password</label>
-            <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input type="password" className="input-field pl-9" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="••••••" />
+        <div className="card space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-text-primary text-lg">2-Step Verification</h2>
+              <p className="text-text-muted text-sm mt-1">Add an extra layer of security to your account</p>
+            </div>
+            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user?.mfaEnabled ? 'bg-neon-green/10 text-neon-green border border-neon-green/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+              {user?.mfaEnabled ? 'Protected' : 'Unprotected'}
             </div>
           </div>
-          <div>
-            <label className="block text-sm text-text-secondary mb-1.5">New Password</label>
-            <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-              <input type="password" className="input-field pl-9" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Min. 6 characters" minLength={6} />
+
+          {!user?.mfaEnabled ? (
+            !mfaSetupData ? (
+              <div className="bg-surface-1 rounded-xl p-5 border border-border-subtle text-center">
+                <Lock className="w-12 h-12 text-accent-primary mx-auto mb-3 opacity-50" />
+                <p className="text-text-secondary text-sm mb-4">Protect your account with a secondary authentication code from apps like Google Authenticator.</p>
+                <button onClick={handleMfaInit} disabled={loading} className="btn-primary w-full py-3">
+                  {loading ? 'Initializing...' : 'Enable 2FA'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6 animate-fade-in">
+                <div className="bg-white p-4 rounded-2xl inline-block mx-auto border-4 border-accent-primary/20 shadow-glow">
+                  <img src={mfaSetupData.qrCodeUrl} alt="MFA QR Code" className="w-48 h-48" />
+                </div>
+                
+                <div className="text-left space-y-3">
+                  <p className="text-sm font-medium text-text-primary">1. Scan this QR code in your auth app</p>
+                  <p className="text-xs text-text-muted bg-surface-1 p-2 rounded border border-border-subtle break-all font-mono">
+                    Secret Key: <span className="text-accent-glow select-all">{mfaSetupData.secret}</span>
+                  </p>
+                  <p className="text-sm font-medium text-text-primary pt-2">2. Enter the 6-digit verification code</p>
+                  <input
+                    type="text"
+                    className="input-field text-center text-xl tracking-widest font-mono"
+                    placeholder="000000"
+                    maxLength={6}
+                    value={mfaCode}
+                    onChange={e => setMfaCode(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                   <button onClick={() => setMfaSetupData(null)} className="flex-1 px-4 py-3 rounded-xl border border-border-default text-text-secondary text-sm font-medium hover:bg-surface-1 transition-all">
+                     Cancel
+                   </button>
+                   <button onClick={handleMfaVerify} disabled={loading || mfaCode.length !== 6} className="flex-[2] btn-primary py-3">
+                     {loading ? 'Verifying...' : 'Verify & Enable'}
+                   </button>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="bg-surface-1 rounded-xl p-5 border border-border-subtle">
+               <div className="flex items-start gap-4 mb-4">
+                 <div className="p-3 bg-neon-green/10 rounded-xl text-neon-green">
+                   <Check size={24} />
+                 </div>
+                 <div>
+                   <h3 className="font-semibold text-text-primary">Authenticator App Active</h3>
+                   <p className="text-text-muted text-xs mt-0.5">Your account is secured with 2FA.</p>
+                 </div>
+               </div>
+               <button onClick={handleMfaDisable} disabled={loading} className="w-full py-2.5 rounded-lg border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/10 transition-all uppercase tracking-widest">
+                 {loading ? 'Processing...' : 'Disable 2-Step Verification'}
+               </button>
             </div>
-          </div>
-          <button onClick={handlePasswordChange} disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2">
-            {loading ? <Loader variant="spinner" size="sm" /> : 'Change Password'}
-          </button>
+          )}
         </div>
       )}
 

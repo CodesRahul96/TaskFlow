@@ -2,11 +2,22 @@ import { create } from 'zustand';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 
+const safeParse = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item || item === 'undefined') return null;
+    return JSON.parse(item);
+  } catch {
+    localStorage.removeItem(key);
+    return null;
+  }
+};
+
 const useAuthStore = create((set, get) => ({
-  user:    JSON.parse(localStorage.getItem('tf_user') || 'null'),
-  token:   localStorage.getItem('tf_token') || null,
+  user:    safeParse('tf_user'),
+  token:   localStorage.getItem('tf_token') === 'undefined' ? (localStorage.removeItem('tf_token'), null) : localStorage.getItem('tf_token'),
   loading: false,
-  isGuest: !localStorage.getItem('tf_token'),
+  isGuest: !localStorage.getItem('tf_token') || localStorage.getItem('tf_token') === 'undefined',
   isOnline: navigator.onLine,
 
   setOnline: (status) => set({ isOnline: status }),
@@ -15,10 +26,10 @@ const useAuthStore = create((set, get) => ({
    * STEP 1: Login Request
    * Validates credentials and triggers a Magic Link email from the backend.
    */
-  login: async (email, password) => {
+  login: async (email, sessionId) => {
     set({ loading: true });
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post('/auth/login', { email, sessionId });
       set({ loading: false });
       toast.success(data.message || 'Login link sent to your email!');
       return { success: true, message: data.message };
@@ -34,10 +45,10 @@ const useAuthStore = create((set, get) => ({
    * STEP 2 (Optional): Register
    * Creates a new account and triggers a verification email.
    */
-  register: async (name, email, password) => {
+  register: async (name, email) => {
     set({ loading: true });
     try {
-      const { data } = await api.post('/auth/register', { name, email, password });
+      const { data } = await api.post('/auth/register', { name, email });
       set({ loading: false });
       toast.success(data.message || 'Verification email sent!');
       return { success: true, message: data.message };
@@ -72,10 +83,17 @@ const useAuthStore = create((set, get) => ({
    * STEP 4: Verify Login (Magic Link)
    * Exchanges the temporary login token for a persistent JWT session.
    */
-  verifyLogin: async (token) => {
+  verifyLogin: async (token, sessionId) => {
     set({ loading: true });
     try {
-      const { data } = await api.get(`/auth/verify-login?token=${token}`);
+      const url = `/auth/verify-login?token=${token}${sessionId ? `&sessionId=${sessionId}` : ''}`;
+      const { data } = await api.get(url);
+      
+      if (data.mfaRequired) {
+        set({ loading: false });
+        return { mfaRequired: true, mfaToken: data.mfaToken };
+      }
+
       localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
       set({ user: data.user, token: data.token, loading: false, isGuest: false });
@@ -90,7 +108,12 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  logout: () => {
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     localStorage.removeItem('tf_token');
     localStorage.removeItem('tf_user');
     set({ user: null, token: null, isGuest: true });
@@ -108,6 +131,58 @@ const useAuthStore = create((set, get) => ({
       return { success: true };
     } catch (err) {
       toast.error(err.response?.data?.message || 'Update failed');
+      return { success: false };
+    }
+  },
+
+  // MFA Actions
+  setupMFA: async () => {
+    try {
+      const { data } = await api.get('/auth/mfa/setup');
+      return { success: true, data };
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'MFA setup failed');
+      return { success: false };
+    }
+  },
+
+  verifyMFASetup: async (token) => {
+    try {
+      const { data } = await api.post('/auth/mfa/verify', { token });
+      set((state) => ({ user: { ...state.user, mfaEnabled: true } }));
+      toast.success(data.message);
+      return { success: true };
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'MFA verification failed');
+      return { success: false };
+    }
+  },
+
+  validateMFA: async (mfaToken, code, sessionId) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/mfa/validate', { mfaToken, code, sessionId });
+      localStorage.setItem('tf_token', data.token);
+      localStorage.setItem('tf_user', JSON.stringify(data.user));
+      set({ user: data.user, token: data.token, loading: false, isGuest: false });
+      toast.success('MFA verified! Welcome back.');
+      return { success: true };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Invalid MFA code';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  disableMFA: async () => {
+    try {
+      const { data } = await api.post('/auth/mfa/disable');
+      set((state) => ({ user: { ...state.user, mfaEnabled: false } }));
+      toast.success(data.message);
+      return { success: true };
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'MFA disable failed');
       return { success: false };
     }
   },

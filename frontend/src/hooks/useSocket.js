@@ -26,6 +26,9 @@ export const useSocket = (enabled = true) => {
   return {
     joinTask: (taskId) => socket?.emit("join-task", taskId),
     leaveTask: (taskId) => socket?.emit("leave-task", taskId),
+    emit: (event, data) => socket?.emit(event, data),
+    on: (event, cb) => socket?.on(event, cb),
+    off: (event, cb) => socket?.off(event, cb),
   };
 };
 

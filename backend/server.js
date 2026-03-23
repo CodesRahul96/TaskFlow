@@ -4,6 +4,9 @@ const http = require("http");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+const mongoSanitize = require("express-mongo-sanitize");
+const rateLimit = require("express-rate-limit");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
 const errorHandler = require("./middleware/errorHandler");
@@ -21,6 +24,16 @@ const io = new Server(server, {
 
 // Middleware
 app.use(helmet({ crossOriginEmbedderPolicy: false }));
+app.use(mongoSanitize());
+app.use(cookieParser());
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 100, // Limit each IP to 100 requests per window
+  message: { message: "Too many requests, please try again later." },
+});
+app.use("/api/", globalLimiter);
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:5173",

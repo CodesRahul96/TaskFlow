@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Zap, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
 import useAuthStore from '../store/authStore';
+import { useSocket } from '../hooks/useSocket';
 import Loader from '../components/ui/Loader';
+import toast from 'react-hot-toast';
 
 export default function Login() {
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [showPass, setShowPass] = useState(false);
+  const [form, setForm] = useState({ email: '' });
   const [errors, setErrors] = useState({});
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [sessionId] = useState(() => crypto.randomUUID());
   const { login, loading, setGuestMode } = useAuthStore();
+  const { emit, on, off } = useSocket(true);
   const navigate = useNavigate();
 
   // Real-time validation
@@ -22,13 +26,55 @@ export default function Login() {
     validate();
   }, [form]);
 
+  // Socket listener for auto-login
+  useEffect(() => {
+    if (!isMagicLinkSent) return;
+
+    // Join room for this login session
+    emit('join-room', `login:${sessionId}`);
+
+    const handleAutoLogin = (data) => {
+      // Data contains { token, user }
+      localStorage.setItem('tf_token', data.token);
+      localStorage.setItem('tf_user', JSON.stringify(data.user));
+      
+      // Update store state manually since we are bypassing the verifyLogin call
+      useAuthStore.setState({ 
+        user: data.user, 
+        token: data.token, 
+        isGuest: false 
+      });
+
+      toast.success(`Logged in automatically! Welcome, ${data.user.name}`);
+      navigate('/');
+    };
+
+    on('login-success', handleAutoLogin);
+
+    return () => {
+      off('login-success', handleAutoLogin);
+    };
+  }, [isMagicLinkSent, sessionId, emit, on, off, navigate]);
+
+  // Resend timer logic
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (Object.keys(errors).length > 0) return;
     
-    const result = await login(form.email, form.password);
+    const result = await login(form.email, sessionId);
     if (result.success) {
       setIsMagicLinkSent(true);
+      setResendTimer(300); // Start 5 min cooldown
     } else if (result.errors) {
       const serverErrors = {};
       result.errors.forEach(err => {
@@ -75,12 +121,20 @@ export default function Login() {
                 We've sent a magic login link to <span className="text-text-primary font-medium">{form.email}</span>.
               </p>
               <p className="text-text-muted text-sm px-4">
-                The link will expire in 10 minutes. Please click it to sign in to your dashboard.
+                The link will expire in 5 minutes. Please click it to sign in to your dashboard.
               </p>
-              <div className="pt-4">
+              <div className="pt-4 space-y-3">
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || resendTimer > 0}
+                  className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed text-xs uppercase tracking-widest"
+                >
+                  {loading ? <Loader variant="spinner" size="sm" /> : 
+                    resendTimer > 0 ? `Resend available in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Magic Link'}
+                </button>
                 <button 
                   onClick={() => setIsMagicLinkSent(false)}
-                  className="text-primary-400 hover:text-primary-300 text-sm font-medium"
+                  className="text-text-muted hover:text-text-primary text-sm font-medium transition-colors"
                 >
                   Back to login form
                 </button>
@@ -111,28 +165,6 @@ export default function Login() {
                   {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1.5">Password</label>
-                  <div className="relative">
-                    <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                    <input
-                      type={showPass ? 'text' : 'password'}
-                      className={`input-field pl-9 pr-10 ${errors.password ? 'border-red-500/50' : ''}`}
-                      placeholder="••••••••"
-                      value={form.password}
-                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPass(!showPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
-                    >
-                      {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-                </div>
 
                 <button
                   type="submit"
