@@ -14,6 +14,9 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 const server = http.createServer(app);
 
+// Trust proxy for rate limiting (Render/Vercel)
+app.set("trust proxy", 1);
+
 // Socket.IO
 const io = new Server(server, {
   cors: {
