@@ -1,23 +1,33 @@
 const nodemailer = require("nodemailer");
-const dns = require("dns");
+const dns = require("dns").promises;
 
 const sendEmail = async (options) => {
   try {
     console.log(`(SMTP) Sending email to: ${options.email} with subject: ${options.subject}`);
     
+    // 0) Manually resolve the IPv4 address to completely bypass Render's broken IPv6 DNS
+    let smtpHostIp;
+    try {
+      const { address } = await dns.lookup(process.env.EMAIL_HOST, { family: 4 });
+      smtpHostIp = address;
+      console.log(`Resolved ${process.env.EMAIL_HOST} to IPv4: ${smtpHostIp}`);
+    } catch (dnsErr) {
+      console.error("DNS lookup failed, falling back to hostname:", dnsErr);
+      smtpHostIp = process.env.EMAIL_HOST; // fallback
+    }
+
     // 1) Create a transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
+      host: smtpHostIp, // Connect directly to the IPv4 IP address string
       port: process.env.EMAIL_PORT,
       secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
-      family: 4, // Force IPv4 to avoid Render IPv6 ENETUNREACH errors
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD?.replace(/\s+/g, ""),
       },
       tls: {
         rejectUnauthorized: false,
-        servername: process.env.EMAIL_HOST,
+        servername: process.env.EMAIL_HOST, // Required for TLS certificate matching when connecting via IP
       },
       connectionTimeout: 20000, // 20 seconds
       greetingTimeout: 20000,
