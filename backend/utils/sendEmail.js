@@ -10,13 +10,10 @@ const sendEmail = async (options) => {
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
       secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
+      family: 4, // Force IPv4 to avoid Render IPv6 ENETUNREACH errors
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD?.replace(/\s+/g, ""),
-      },
-      // Force IPv4 to resolve ENETUNREACH errors on certain hosts (Render/Vercel)
-      lookup: (hostname, opts, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
       },
       tls: {
         rejectUnauthorized: false,
