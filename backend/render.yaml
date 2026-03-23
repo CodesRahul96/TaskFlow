@@ -23,7 +23,7 @@ services:
       - key: EMAIL_HOST
         value: smtp.gmail.com
       - key: EMAIL_PORT
-        value: 465
+        value: 587
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASSWORD

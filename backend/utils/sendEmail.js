@@ -8,13 +8,18 @@ const sendEmail = async (options) => {
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
-      secure: process.env.EMAIL_PORT == 465, // true for 465, false for other ports
+      secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD?.replace(/\s+/g, ""),
       },
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,   // 10 seconds
+      tls: {
+        // Essential for some hosting providers
+        rejectUnauthorized: false,
+        servername: process.env.EMAIL_HOST,
+      },
+      connectionTimeout: 15000, // Increase to 15s
+      greetingTimeout: 15000,
     });
 
     // 2) Define the email options
