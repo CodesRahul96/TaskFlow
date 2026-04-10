@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckSquare, Clock, AlertCircle, TrendingUp, Plus, Calendar, ArrowRight, Zap } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import useAuthStore from '../store/authStore';
 import useTaskStore from '../store/taskStore';
 import Loader from '../components/ui/Loader';
+import TaskModal from '../components/tasks/TaskModal';
 
 const PRIORITY_COLORS = {
   urgent: 'text-danger',
@@ -60,6 +61,8 @@ function getDeadlineLabel(deadline) {
 export default function Dashboard() {
   const { user, isGuest } = useAuthStore();
   const { tasks, loading, fetchTasks } = useTaskStore();
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     fetchTasks(isGuest);
@@ -108,7 +111,7 @@ export default function Dashboard() {
         </div>
         
         <button
-          onClick={() => navigate('/tasks')}
+          onClick={() => setShowModal(true)}
           className="btn-primary flex items-center justify-center gap-3 px-8 py-5 group"
         >
           <Plus size={20} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" /> 
@@ -261,6 +264,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      
+      {showModal && <TaskModal onClose={() => setShowModal(false)} />}
     </div>
   );
 }
