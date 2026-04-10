@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CheckSquare, Clock, AlertCircle, TrendingUp, Plus, Calendar, ArrowRight, Zap } from 'lucide-react';
 import { format, isToday, isTomorrow, isPast } from 'date-fns';
 import useAuthStore from '../store/authStore';
@@ -112,7 +112,7 @@ export default function Dashboard() {
           className="btn-primary flex items-center justify-center gap-3 px-8 py-5 group"
         >
           <Plus size={20} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" /> 
-          <span className="text-xs">Initialize Protocol</span>
+          <span className="text-xs font-bold uppercase tracking-widest">New Task</span>
         </button>
       </div>
 
