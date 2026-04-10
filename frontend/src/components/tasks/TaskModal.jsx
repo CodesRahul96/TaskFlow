@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Clock, Tag, Flag, Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import useTaskStore from '../../store/taskStore';
@@ -74,8 +75,8 @@ export default function TaskModal({ task, onClose }) {
     if (result?.success) onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-bg-primary/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+  const modalContent = (
+    <div className="fixed inset-0 bg-bg-primary/80 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
       <div className="bg-bg-secondary border-t sm:border border-border-subtle rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl animate-slide-up h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 md:p-8 border-b border-border-subtle bg-surface-1/10">
@@ -321,5 +322,7 @@ export default function TaskModal({ task, onClose }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 

@@ -93,7 +93,7 @@ export default function Dashboard() {
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="p-6 md:p-12 max-w-[1600px] mx-auto animate-fade-in relative z-10">
+    <div className="p-6 md:p-12 max-w-[1600px] mx-auto animate-fade-in relative">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
         <div className="space-y-2">
