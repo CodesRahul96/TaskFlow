@@ -4,25 +4,73 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* 
+   * THEME COMPONENT SYSTEM (RGB)
+   * All color variables are stored as space-separated RGB components.
+   * This allows for functional 'rgba()' color injection across the app,
+   * bypassing the fragile 'Unexpected Token' errors during PostCSS @apply 
+   * expansion while maintaining perfect theme-aware transparency.
+   */
+  --bg-primary: 248, 249, 250;
+  --bg-secondary: 255, 255, 255;
+  --surface-1: 255, 255, 255;
+  --surface-2: 241, 245, 249;
+  --border-subtle: 226, 232, 240;
+  --border-default: 203, 213, 225;
+  --border-strong: 148, 163, 184;
+  --text-primary: 15, 23, 42;
+  --text-secondary: 71, 85, 105;
+  --text-muted: 100, 116, 139;
+  --accent-primary: 59, 130, 246;
+  --accent-hover: 37, 99, 235;
+  --success: 16, 185, 129;
+  --warning: 245, 158, 11;
+  --danger: 239, 68, 68;
+  --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+.dark {
+  --bg-primary: 12, 12, 14;
+  --bg-secondary: 17, 17, 19;
+  --surface-1: 22, 22, 24;
+  --surface-2: 30, 30, 33;
+  --border-subtle: 36, 36, 39;
+  --border-default: 45, 45, 49;
+  --border-strong: 63, 63, 70;
+  --text-primary: 248, 248, 248;
+  --text-secondary: 161, 161, 170;
+  --text-muted: 113, 113, 122;
+  --accent-primary: 59, 130, 246;
+  --accent-hover: 37, 99, 235;
+  --success: 16, 185, 129;
+  --warning: 245, 158, 11;
+  --danger: 239, 68, 68;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+
+
 @layer base {
   html {
     font-family: "Inter", sans-serif;
+    @apply transition-colors duration-300;
   }
   body {
-    @apply bg-bg-primary text-text-primary;
+    @apply bg-bg-primary text-text-primary min-h-screen transition-colors duration-300;
   }
   * {
-    @apply box-border;
+    @apply box-border border-border-subtle;
   }
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    @apply bg-bg-primary;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-border-default rounded-full;
+    @apply bg-border-subtle rounded-full hover:bg-border-default transition-colors;
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -35,37 +83,71 @@
 
 @layer components {
   .card {
-    @apply bg-surface-1 border border-border-subtle rounded-xl p-4;
+    @apply bg-surface-1 border border-border-subtle rounded-2xl p-4 transition-all duration-300;
+  }
+  .card-hover {
+    @apply hover:border-border-default hover:bg-surface-2 hover:shadow-premium;
   }
   .btn-primary {
-    @apply bg-accent-primary hover:bg-accent-glow text-white font-medium px-4 py-2 rounded-lg
-           transition-all duration-200 cursor-pointer border-0 text-sm;
+    @apply bg-accent-primary hover:bg-accent-hover text-white font-bold px-4 py-3 rounded-xl
+           transition-all duration-300 cursor-pointer border-0 text-[11px] uppercase tracking-widest
+           active:scale-[0.96] shadow-blue hover:shadow-premium;
+  }
+  .btn-secondary {
+    @apply bg-surface-2 hover:bg-surface-1 text-text-primary font-bold px-4 py-3 rounded-xl
+           border border-border-default transition-all duration-300 cursor-pointer text-[11px] uppercase tracking-widest;
   }
   .btn-ghost {
-    @apply text-text-muted hover:text-text-primary hover:bg-surface-2 font-medium px-3 py-2 rounded-lg
-           transition-all duration-200 cursor-pointer border-0 text-sm;
+    @apply text-text-muted hover:text-text-primary hover:bg-surface-2 font-bold px-3 py-2 rounded-lg
+           transition-all duration-200 cursor-pointer border-0 text-[10px] uppercase tracking-widest;
   }
   .input-field {
-    @apply w-full bg-surface-2 border border-border-subtle text-text-primary placeholder-text-muted
-           rounded-lg px-3 py-2 text-sm outline-none
-           focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/30
-           transition-all duration-200;
+    @apply w-full border border-border-subtle text-text-primary 
+           rounded-xl px-4 py-3.5 text-sm outline-none shadow-inset
+           transition-all duration-300;
+    background-color: rgba(var(--surface-1), 0.5);
   }
+  .input-field::placeholder {
+    color: rgba(var(--text-muted), 0.5);
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    font-size: 10px;
+  }
+  .input-field:focus {
+    border-color: rgba(var(--accent-primary), 0.4);
+    background-color: rgb(var(--surface-1));
+  }
+
   .tag {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.1em];
   }
-  .glass {
-    @apply bg-surface-1/80 backdrop-blur-md border border-border-subtle;
+  .shadow-premium {
+    box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -4px var(--shadow-color);
   }
+  .shadow-inset {
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+  }
+  .nav-indicator {
+    @apply absolute left-0 w-1 bg-accent-primary rounded-r-full shadow-blue transition-all duration-300 ease-in-out;
+  }
+
+  /* Staggered Animations */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+
   .skeleton {
-    @apply relative overflow-hidden bg-surface-2 rounded-lg;
+    @apply relative overflow-hidden bg-surface-2/50 rounded-2xl;
   }
   .skeleton::after {
     @apply absolute inset-0 content-[''];
     background: linear-gradient(
       90deg,
       transparent,
-      theme('colors.text-primary' / 10%),
+      rgba(255, 255, 255, 0.05),
       transparent
     );
     animation: shimmer 1.5s infinite;
@@ -74,50 +156,53 @@
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
-  @keyframes fade-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes pulsate {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.95); }
-  }
-  .animate-fade-in {
-    animation: fade-in 0.4s ease-out forwards;
-  }
-  .animate-pulsate {
-    animation: pulsate 2s ease-in-out infinite;
-  }
-  /* Priority tags */
+  /* Priority tags - Minimalist subtle style */
   .priority-urgent {
-    @apply bg-pink-500/20   text-pink-400   border border-pink-500/30;
+    @apply text-danger;
+    background-color: rgba(var(--danger), 0.1);
+    border: 1px solid rgba(var(--danger), 0.1);
   }
   .priority-high {
-    @apply bg-red-500/20    text-red-400    border border-red-500/30;
+    @apply text-warning;
+    background-color: rgba(var(--warning), 0.1);
+    border: 1px solid rgba(var(--warning), 0.1);
   }
   .priority-medium {
-    @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
+    @apply text-accent-primary;
+    background-color: rgba(var(--accent-primary), 0.1);
+    border: 1px solid rgba(var(--accent-primary), 0.1);
   }
   .priority-low {
-    @apply bg-green-500/20  text-green-400  border border-green-500/30;
+    @apply text-success;
+    background-color: rgba(var(--success), 0.1);
+    border: 1px solid rgba(var(--success), 0.1);
   }
   /* Status tags */
   .status-todo {
-    @apply bg-slate-500/20  text-slate-400  border border-slate-500/30;
+    @apply text-text-muted;
+    background-color: rgba(var(--text-muted), 0.05);
+    border: 1px solid rgba(var(--text-muted), 0.1);
   }
   .status-in-progress {
-    @apply bg-blue-500/20   text-blue-400   border border-blue-500/30;
+    @apply text-accent-primary;
+    background-color: rgba(var(--accent-primary), 0.05);
+    border: 1px solid rgba(var(--accent-primary), 0.1);
   }
   .status-completed {
-    @apply bg-green-500/20  text-green-400  border border-green-500/30;
+    @apply text-success;
+    background-color: rgba(var(--success), 0.05);
+    border: 1px solid rgba(var(--success), 0.1);
   }
   .status-cancelled {
-    @apply bg-red-500/20    text-red-400    border border-red-500/30;
+    @apply text-danger;
+    background-color: rgba(var(--danger), 0.05);
+    border: 1px solid rgba(var(--danger), 0.1);
   }
-  .glass-card {
-    @apply bg-surface-1/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+
+  .badge-dot {
+    @apply w-2 h-2 rounded-full;
   }
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-primary to-neon-purple font-bold;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary font-bold;
   }
 }

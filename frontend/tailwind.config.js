@@ -1,27 +1,44 @@
-/** @type {import("tailwindcss").Config} */
+/** 
+ * TASKFLOW DESIGN SYSTEM CONFIGURATION
+ * 
+ * ARCHITECTURAL NOTE: This configuration uses a functional 'withOpacity' helper 
+ * to handle CSS variable-based colors. This is a deliberate choice to ensure 
+ * complete compatibility with PostCSS @apply expansions and avoid the 
+ * 'Unexpected Token' errors common in automated build pipelines.
+ * 
+ * DO NOT refactor this to standard hex strings without verifying 
+ * the dynamic alpha-channel injection across all theme-aware components.
+ */
+const withOpacity = (variableName) => {
+  return ({ opacityValue }) => {
+    if (opacityValue !== undefined) {
+      return `rgba(var(${variableName}), ${opacityValue})`;
+    }
+    return `rgb(var(${variableName}))`;
+  };
+};
+
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
-        "bg-primary":    "#0f0f1a",
-        "bg-secondary":  "#161625",
-        "surface-1":     "#1e1e35",
-        "surface-2":     "#252540",
-        "border-subtle": "#2a2a4a",
-        "border-default":"#3d3d60",
-        "border-strong": "#5555a0",
-        "text-primary":  "#f1f0ff",
-        "text-secondary":"#c5c3e8",
-        "text-muted":    "#7b79a8",
-        "accent-primary":"#6366f1",
-        "accent-glow":   "#818cf8",
-        "neon-green":    "#10b981",
-        "neon-blue":     "#3b82f6",
-        "neon-red":      "#ef4444",
-        "neon-yellow":   "#f59e0b",
-        "neon-cyan":     "#06b6d4",
-        "neon-purple":   "#8b5cf6",
+        "bg-primary":    withOpacity("--bg-primary"),
+        "bg-secondary":  withOpacity("--bg-secondary"),
+        "surface-1":     withOpacity("--surface-1"),
+        "surface-2":     withOpacity("--surface-2"),
+        "border-subtle": withOpacity("--border-subtle"),
+        "border-default":withOpacity("--border-default"),
+        "border-strong": withOpacity("--border-strong"),
+        "text-primary":  withOpacity("--text-primary"),
+        "text-secondary":withOpacity("--text-secondary"),
+        "text-muted":    withOpacity("--text-muted"),
+        "accent-primary":withOpacity("--accent-primary"),
+        "accent-hover":  withOpacity("--accent-hover"),
+        "success":       withOpacity("--success"),
+        "warning":       withOpacity("--warning"),
+        "danger":        withOpacity("--danger"),
       },
       fontFamily: {
         sans:    ["Inter", "sans-serif"],
@@ -29,9 +46,9 @@ export default {
         mono:    ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        "glow":    "0 0 20px rgba(99,102,241,0.4)",
-        "glow-sm": "0 0 10px rgba(99,102,241,0.3)",
-        "glow-lg": "0 0 40px rgba(99,102,241,0.5)",
+        "subtle":  "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+        "card":    "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        "blue":    "0 0 15px rgba(59, 130, 246, 0.15)",
       },
       animation: {
         "fade-in":  "fadeIn 0.2s ease-out",

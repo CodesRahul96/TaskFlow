@@ -7,30 +7,43 @@ import useTaskStore from '../store/taskStore';
 import Loader from '../components/ui/Loader';
 
 const PRIORITY_COLORS = {
-  urgent: 'text-neon-red',
-  high: 'text-neon-yellow',
-  medium: 'text-neon-blue',
-  low: 'text-neon-green',
+  urgent: 'text-danger',
+  high: 'text-warning',
+  medium: 'text-accent-primary',
+  low: 'text-success',
 };
 
 const STATUS_COLORS = {
-  todo: 'bg-text-muted/20 text-text-secondary',
-  'in-progress': 'bg-neon-blue/20 text-neon-blue',
-  completed: 'bg-neon-green/20 text-neon-green',
-  cancelled: 'bg-neon-red/20 text-neon-red',
+  todo: 'status-todo',
+  'in-progress': 'status-in-progress',
+  completed: 'status-completed',
+  cancelled: 'status-cancelled',
 };
 
-function StatCard({ icon: Icon, label, value, color, sub }) {
+function StatCard({ icon: Icon, label, value, color, sub, trend }) {
   return (
-    <div className="card flex items-start gap-4 hover:border-border-default transition-all">
-      <div className={`p-2.5 rounded-lg ${color} flex-shrink-0`}>
-        <Icon size={20} />
+    <div className="card card-hover flex flex-col gap-4 group relative overflow-hidden">
+      <div className="flex items-center justify-between z-10">
+        <div className={`w-12 h-12 rounded-2xl ${color} flex items-center justify-center flex-shrink-0 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 shadow-sm`}>
+          <Icon size={24} strokeWidth={2.5} />
+        </div>
+        {trend && (
+           <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${trend.startsWith('+') ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+              {trend.startsWith('+') ? <TrendingUp size={10} /> : <Zap size={10} className="rotate-180" />}
+              {trend}
+           </div>
+        )}
       </div>
-      <div>
-        <p className="text-text-muted text-sm">{label}</p>
-        <p className="text-2xl font-bold text-text-primary mt-0.5">{value}</p>
-        {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
+      <div className="z-10 mt-2">
+        <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.2em]">{label}</p>
+        <div className="flex items-baseline gap-2 mt-1">
+          <p className="text-3xl font-display font-black text-text-primary tracking-tight">{value}</p>
+          {sub && <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{sub}</span>}
+        </div>
       </div>
+      
+      {/* Decorative background element */}
+      <div className={`absolute -bottom-6 -right-6 w-24 h-24 rounded-full opacity-5 transition-all duration-700 group-hover:scale-150 group-hover:opacity-10 ${color.split(' ')[0]}`} />
     </div>
   );
 }
@@ -38,10 +51,10 @@ function StatCard({ icon: Icon, label, value, color, sub }) {
 function getDeadlineLabel(deadline) {
   if (!deadline) return null;
   const d = new Date(deadline);
-  if (isPast(d) && !isToday(d)) return { label: 'Overdue', cls: 'text-neon-red' };
-  if (isToday(d)) return { label: 'Today', cls: 'text-neon-yellow' };
-  if (isTomorrow(d)) return { label: 'Tomorrow', cls: 'text-neon-cyan' };
-  return { label: format(d, 'MMM d'), cls: 'text-text-muted' };
+  if (isPast(d) && !isToday(d)) return { label: 'CRITICAL', cls: 'priority-urgent' };
+  if (isToday(d)) return { label: 'DUE TODAY', cls: 'priority-high' };
+  if (isTomorrow(d)) return { label: 'UPCOMING', cls: 'priority-medium' };
+  return { label: format(d, 'MMM d').toUpperCase(), cls: 'status-todo' };
 }
 
 export default function Dashboard() {
@@ -66,126 +79,124 @@ export default function Dashboard() {
       if (a.deadline && b.deadline) return new Date(a.deadline) - new Date(b.deadline);
       return 0;
     })
-    .slice(0, 8);
+    .slice(0, 5);
 
   const upcomingBlocks = tasks
     .flatMap(t => (t.timeBlocks || []).map(b => ({ ...b, task: t })))
     .filter(b => new Date(b.startTime) > new Date())
     .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-    .slice(0, 5);
+    .slice(0, 4);
 
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto animate-fade-in">
+    <div className="p-6 md:p-12 max-w-[1600px] mx-auto animate-fade-in relative z-10">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-xl md:text-2xl font-display font-bold text-text-primary">
-            {isGuest ? 'Welcome to TaskFlow' : `Good ${getGreeting()}, ${user?.name?.split(' ')[0]}`}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+             <div className="h-px w-8 bg-accent-primary" />
+             <span className="text-[10px] font-black text-accent-primary uppercase tracking-[0.4em]">Operational Overview</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-display font-black text-text-primary tracking-tighter leading-none">
+            {isGuest ? 'GUEST NODE' : `OPERATOR: ${user?.name?.split(' ')[0].toUpperCase()}`}
           </h1>
-          <p className="text-text-muted mt-1 text-sm">
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+          <p className="text-text-muted text-sm font-bold uppercase tracking-widest flex items-center gap-3">
+             <Clock size={14} className="text-accent-primary" />
+             Active Synchronizing: <span className="text-text-primary">{inProgress} Tasks in pipeline</span>
           </p>
         </div>
-        <Link
-          to="/tasks"
-          className="btn-primary flex items-center justify-center gap-2"
+        
+        <button
+          onClick={() => navigate('/tasks')}
+          className="btn-primary flex items-center justify-center gap-3 px-8 py-5 group"
         >
-          <Plus size={16} /> New Task
-        </Link>
+          <Plus size={20} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" /> 
+          <span className="text-xs">Initialize Protocol</span>
+        </button>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 md:mb-8">
-        <StatCard icon={CheckSquare} label="Total Tasks" value={total} color="bg-accent-primary/20 text-accent-glow" />
-        <StatCard icon={TrendingUp} label="Completed" value={completed} color="bg-neon-green/20 text-neon-green" sub={`${completionRate}% rate`} />
-        <StatCard icon={Clock} label="In Progress" value={inProgress} color="bg-neon-blue/20 text-neon-blue" />
-        <StatCard icon={AlertCircle} label="Overdue" value={overdue} color="bg-neon-red/20 text-neon-red" sub={urgent > 0 ? `${urgent} urgent` : undefined} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {loading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton h-32 w-full rounded-[2.5rem]" />
+          ))
+        ) : (
+          <>
+            <div className="stagger-1"><StatCard icon={CheckSquare} label="Throughput" value={total} color="bg-accent-primary/10 text-accent-primary shadow-blue/20" trend="+8%" /></div>
+            <div className="stagger-2"><StatCard icon={TrendingUp} label="Efficiency" value={`${completionRate}%`} color="bg-success/10 text-success shadow-success/20" sub="Success Rate" trend="+12%" /></div>
+            <div className="stagger-3"><StatCard icon={Clock} label="In Processing" value={inProgress} color="bg-warning/10 text-warning shadow-warning/20" trend="-3%" /></div>
+            <div className="stagger-4"><StatCard icon={AlertCircle} label="System Alerts" value={overdue} color="bg-danger/10 text-danger shadow-danger/20" sub={urgent > 0 ? `${urgent} High Priority` : ''} trend="0%" /></div>
+          </>
+        )}
       </div>
 
-      {/* Progress bar */}
-      {total > 0 && (
-        <div className="card mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-text-secondary">Overall Progress</span>
-            <span className="text-sm font-bold text-accent-glow">{completionRate}%</span>
-          </div>
-          <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-accent-primary to-neon-cyan rounded-full transition-all duration-500"
-              style={{ width: `${completionRate}%` }}
-            />
-          </div>
-          <div className="flex gap-4 mt-3">
-            {[
-              { label: 'Todo', count: tasks.filter(t => t.status === 'todo').length, color: 'bg-text-muted' },
-              { label: 'In Progress', count: inProgress, color: 'bg-neon-blue' },
-              { label: 'Completed', count: completed, color: 'bg-neon-green' },
-            ].map(({ label, count, color }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${color}`} />
-                <span className="text-xs text-text-muted">{label}: <strong className="text-text-secondary">{count}</strong></span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
         {/* Priority tasks */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-text-primary">Priority Tasks</h2>
-            <Link to="/tasks" className="text-xs text-accent-glow hover:text-white transition-colors flex items-center gap-1">
-              View all <ArrowRight size={12} />
+        <div className="xl:col-span-2">
+          <div className="flex items-center justify-between mb-8 border-b border-border-subtle/30 pb-4">
+            <h2 className="text-xl font-display font-black text-text-primary tracking-tight flex items-center gap-3">
+               <Zap size={20} className="text-accent-primary" /> 
+               PRIORITY PIPELINE
+            </h2>
+            <Link to="/tasks" className="text-[10px] font-black text-accent-primary hover:text-accent-hover flex items-center gap-2 uppercase tracking-[0.2em] transition-all group">
+              View All Nodes <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
           {loading ? (
-            <div className="space-y-3">
-              {[...Array(4)].map((_, i) => (
-                <Loader key={i} variant="skeleton" className="h-16 rounded-xl" />
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="skeleton h-24 w-full rounded-2xl" />
               ))}
             </div>
           ) : recentTasks.length === 0 ? (
-            <div className="card text-center py-12">
-              <Zap size={32} className="text-text-muted mx-auto mb-3" />
-              <p className="text-text-muted">No tasks yet</p>
-              <Link to="/tasks" className="btn-primary inline-flex items-center gap-2 mt-4">
-                <Plus size={14} /> Create your first task
-              </Link>
+            <div className="card text-center py-20 bg-surface-1/30 border-dashed border-border-strong/30 rounded-[2.5rem]">
+              <div className="w-16 h-16 bg-surface-2 rounded-2xl flex items-center justify-center mx-auto mb-6 opacity-20">
+                 <Zap size={40} className="text-text-muted" />
+              </div>
+              <p className="text-text-muted font-black tracking-widest uppercase text-xs">All channels clear. No active tasks.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {recentTasks.map(task => {
+            <div className="space-y-4">
+              {recentTasks.map((task, idx) => {
                 const dl = getDeadlineLabel(task.deadline);
-                const subtaskDone = (task.subtasks || []).filter(s => s.completed).length;
-                const subtaskTotal = (task.subtasks || []).length;
                 return (
                   <Link
                     key={task._id}
                     to="/tasks"
-                    className="card flex items-center gap-3 hover:border-border-default transition-all cursor-pointer group"
-                    style={{ borderLeftColor: task.color, borderLeftWidth: '3px' }}
+                    className={`card card-hover flex items-center gap-6 group relative overflow-hidden stagger-${idx + 1}`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-text-primary truncate">{task.title}</p>
-                        {task.priority && (
-                          <span className={`text-xs font-medium ${PRIORITY_COLORS[task.priority]}`}>
-                            {task.priority}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1">
-                        {subtaskTotal > 0 && (
-                          <span className="text-xs text-text-muted">{subtaskDone}/{subtaskTotal} subtasks</span>
-                        )}
-                        {dl && <span className={`text-xs ${dl.cls}`}>{dl.label}</span>}
-                      </div>
+                    <div 
+                      className="absolute left-0 top-0 bottom-0 w-1.5 transition-all duration-300 group-hover:w-2" 
+                      style={{ backgroundColor: task.color || '#3B82F6' }}
+                    />
+                    <div className="flex-1 min-w-0 pl-2">
+                       <div className="flex items-center gap-3 mb-1">
+                          <p className="text-base font-black text-text-primary tracking-tight truncate group-hover:text-accent-primary transition-colors uppercase">
+                             {task.title}
+                          </p>
+                          {task.priority === 'urgent' && (
+                            <span className="w-2 h-2 rounded-full bg-danger animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                          )}
+                       </div>
+                       <div className="flex items-center gap-4">
+                          {dl && <span className={`tag ${dl.cls}`}>{dl.label}</span>}
+                          {task.category && <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{task.category}</span>}
+                       </div>
                     </div>
-                    <span className={`tag text-xs ${STATUS_COLORS[task.status]}`}>{task.status}</span>
+                    
+                    <div className="flex flex-col items-end gap-2">
+                       <span className={`tag ${STATUS_COLORS[task.status]}`}>{task.status.replace('-', ' ')}</span>
+                       <div className="flex -space-x-2">
+                          {[...Array(3)].map((_, i) => (
+                             <div key={i} className="w-6 h-6 rounded-lg border-2 border-bg-secondary bg-surface-2 flex items-center justify-center text-[8px] font-black text-text-muted">
+                                {i + 1}
+                             </div>
+                          ))}
+                       </div>
+                    </div>
                   </Link>
                 );
               })}
@@ -193,51 +204,67 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Upcoming time blocks */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-text-primary">Upcoming Blocks</h2>
-            <Link to="/calendar" className="text-xs text-accent-glow hover:text-white transition-colors flex items-center gap-1">
-              Calendar <ArrowRight size={12} />
-            </Link>
+        {/* Upcoming Blocks */}
+        <div className="space-y-8">
+          <div className="flex items-center justify-between border-b border-border-subtle/30 pb-4">
+            <h2 className="text-xl font-display font-black text-text-primary tracking-tight flex items-center gap-3">
+               <Calendar size={20} className="text-text-muted" /> 
+               DAILY LOG
+            </h2>
           </div>
 
           {upcomingBlocks.length === 0 ? (
-            <div className="card text-center py-8">
-              <Calendar size={28} className="text-text-muted mx-auto mb-2" />
-              <p className="text-text-muted text-sm">No upcoming blocks</p>
-              <Link to="/calendar" className="text-xs text-accent-glow hover:text-white mt-2 block">
-                Schedule time →
-              </Link>
+            <div className="card text-center py-16 bg-surface-1/30 border-dashed border-border-strong/30 rounded-[2.5rem]">
+              <Calendar size={32} className="text-text-muted/20 mx-auto mb-4" />
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.2em]">Zero time blocks detected</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {upcomingBlocks.map(block => (
+            <div className="space-y-4">
+              {upcomingBlocks.map((block, idx) => (
                 <div
                   key={block._id}
-                  className="card flex items-start gap-3 hover:border-border-default transition-all"
-                  style={{ borderLeftColor: block.color || block.task.color, borderLeftWidth: '3px' }}
+                  className={`card card-hover flex flex-col gap-4 border-l-4 stagger-${idx + 1}`}
+                  style={{ borderLeftColor: block.color || block.task.color }}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary truncate">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-black text-text-primary truncate uppercase tracking-tight">
                       {block.title || block.task.title}
                     </p>
-                    <p className="text-xs text-text-muted mt-0.5">
-                      {format(new Date(block.startTime), 'MMM d, h:mm a')}
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      → {format(new Date(block.endTime), 'h:mm a')}
-                    </p>
+                    <div className="px-2 py-1 bg-surface-2 rounded-lg text-[10px] font-black text-text-muted uppercase tracking-widest">
+                       {Math.round((new Date(block.endTime) - new Date(block.startTime)) / 60000)}m
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border-subtle/20 pt-3">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-text-muted tracking-widest">
+                       <Clock size={12} className="text-accent-primary" />
+                       {format(new Date(block.startTime), 'HH:mm')} — {format(new Date(block.endTime), 'HH:mm')}
+                    </div>
+                    <ArrowRight size={14} className="text-text-muted opacity-30 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </div>
                 </div>
               ))}
             </div>
           )}
+          
+          {/* Quick Tip / Analytics widget */}
+          <div className="card bg-accent-primary/5 border-accent-primary/10 p-6 rounded-[2.5rem] relative overflow-hidden group">
+             <div className="relative z-10">
+                <h3 className="text-xs font-black text-accent-primary uppercase tracking-[0.2em] mb-2">Efficiency Pro-tip</h3>
+                <p className="text-xs text-text-secondary leading-relaxed font-bold">
+                   You complete 20% more tasks when you set a goal before 10 AM. Sync your calendar now.
+                </p>
+                <Link to="/calendar" className="inline-flex items-center gap-2 text-[10px] font-black text-text-primary uppercase tracking-widest mt-4 hover:gap-3 transition-all">
+                   Optimize Flow <ArrowRight size={12} />
+                </Link>
+             </div>
+             <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-accent-primary/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 function getGreeting() {
   const h = new Date().getHours();

@@ -75,45 +75,54 @@ export default function TaskModal({ task, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-      <div className="bg-bg-secondary border-t sm:border border-border-default rounded-t-2xl sm:rounded-2xl w-full max-w-lg shadow-glow-lg animate-slide-up h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-bg-primary/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+      <div className="bg-bg-secondary border-t sm:border border-border-subtle rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl animate-slide-up h-[92vh] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-border-subtle">
-          <h2 className="font-display font-bold text-lg text-text-primary">
-            {isEditing ? 'Edit Task' : 'New Task'}
-          </h2>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors p-1 rounded">
+        <div className="flex items-center justify-between p-6 md:p-8 border-b border-border-subtle bg-surface-1/10">
+          <div>
+            <h2 className="font-display font-black text-xl text-text-primary tracking-tight">
+              {isEditing ? 'Edit Task' : 'Create Task'}
+            </h2>
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1">
+              {isEditing ? 'Modify existing task details' : 'Set up a new task flow'}
+            </p>
+          </div>
+          <button onClick={onClose} className="btn-secondary p-2.5 rounded-xl transition-all text-text-muted hover:text-text-primary">
             <X size={20} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-border-subtle">
+        <div className="flex px-4 border-b border-border-subtle bg-surface-1/5">
           {['details', 'assign'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-3 text-sm font-medium capitalize transition-colors ${
+              className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${
                 activeTab === tab
-                  ? 'text-accent-glow border-b-2 border-accent-primary'
-                  : 'text-text-muted hover:text-text-secondary'
+                  ? 'text-accent-primary'
+                  : 'text-text-muted hover:text-text-primary'
               }`}
             >
               {tab}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-6 right-6 h-1 bg-accent-primary rounded-t-full shadow-blue" />
+              )}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
-          <div className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 no-scrollbar">
+          <div className="p-6 md:p-8 space-y-6">
             {activeTab === 'details' && (
               <>
                 {/* Title */}
                 <div>
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2.5">Title</label>
                   <input
                     type="text"
-                    className="input-field text-base font-medium"
-                    placeholder="Task title..."
+                    className="input-field text-base font-bold"
+                    placeholder="What needs to be done?"
                     value={form.title}
                     onChange={e => handleChange('title', e.target.value)}
                     required
@@ -123,40 +132,40 @@ export default function TaskModal({ task, onClose }) {
 
                 {/* Description */}
                 <div>
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2.5">Description</label>
                   <textarea
-                    className="input-field resize-none"
-                    placeholder="Description (optional)..."
-                    rows={3}
+                    className="input-field resize-none min-h-[100px] leading-relaxed"
+                    placeholder="Add context or notes..."
                     value={form.description}
                     onChange={e => handleChange('description', e.target.value)}
                   />
                 </div>
 
                 {/* Priority + Status */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-text-muted mb-1.5 flex items-center gap-1">
-                      <Flag size={12} /> Priority
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2.5 flex items-center gap-2">
+                       Priority
                     </label>
                     <select
-                      className="input-field text-sm capitalize"
+                      className="input-field font-bold capitalize text-xs cursor-pointer"
                       value={form.priority}
                       onChange={e => handleChange('priority', e.target.value)}
                     >
                       {PRIORITIES.map(p => (
-                        <option key={p} value={p} className="capitalize">{p}</option>
+                        <option key={p} value={p} className="bg-bg-secondary">{p}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-text-muted mb-1.5">Status</label>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2.5">Status</label>
                     <select
-                      className="input-field text-sm capitalize"
+                      className="input-field font-bold capitalize text-xs cursor-pointer"
                       value={form.status}
                       onChange={e => handleChange('status', e.target.value)}
                     >
                       {STATUSES.map(s => (
-                        <option key={s} value={s} className="capitalize">{s.replace('-', ' ')}</option>
+                        <option key={s} value={s} className="bg-bg-secondary">{s.replace('-', ' ')}</option>
                       ))}
                     </select>
                   </div>
@@ -164,27 +173,30 @@ export default function TaskModal({ task, onClose }) {
 
                 {/* Deadline */}
                 <div>
-                  <label className="block text-xs text-text-muted mb-1.5 flex items-center gap-1">
-                    <Calendar size={12} /> Deadline
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-2.5 flex items-center gap-2">
+                     Deadline
                   </label>
-                  <input
-                    type="datetime-local"
-                    className="input-field text-sm"
-                    value={form.deadline}
-                    onChange={e => handleChange('deadline', e.target.value)}
-                  />
+                  <div className="relative group">
+                    <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+                    <input
+                      type="datetime-local"
+                      className="input-field pl-12 text-xs font-bold"
+                      value={form.deadline}
+                      onChange={e => handleChange('deadline', e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 {/* Color */}
                 <div>
-                  <label className="block text-xs text-text-muted mb-1.5">Color</label>
-                  <div className="flex gap-2">
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-3">Accent Color</label>
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                     {COLORS.map(c => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => handleChange('color', c)}
-                        className={`w-7 h-7 rounded-full transition-all ${form.color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-bg-secondary scale-110' : 'hover:scale-105'}`}
+                        className={`w-8 h-8 rounded-xl transition-all ring-offset-2 ring-offset-bg-secondary flex-shrink-0 ${form.color === c ? 'ring-2 ring-accent-primary scale-110' : 'hover:scale-105 opacity-60 hover:opacity-100'}`}
                         style={{ backgroundColor: c }}
                       />
                     ))}
@@ -193,30 +205,33 @@ export default function TaskModal({ task, onClose }) {
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-xs text-text-muted mb-1.5 flex items-center gap-1">
-                    <Tag size={12} /> Tags
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                     Tags
                   </label>
-                  <div className="flex gap-2 mb-2 flex-wrap">
+                  <div className="flex gap-2 mb-3 flex-wrap">
                     {form.tags.map(tag => (
-                      <span key={tag} className="tag bg-surface-2 text-text-secondary border border-border-subtle">
+                      <span key={tag} className="tag bg-surface-2 text-text-secondary border border-border-subtle font-bold px-3">
                         {tag}
-                        <button type="button" onClick={() => setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))}>
-                          <X size={10} />
+                        <button type="button" onClick={() => setForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))} className="ml-1 hover:text-danger">
+                          <X size={12} />
                         </button>
                       </span>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      className="input-field text-sm flex-1"
-                      placeholder="Add tag..."
-                      value={tagInput}
-                      onChange={e => setTagInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                    />
-                    <button type="button" onClick={addTag} className="btn-ghost px-3">
-                      <Plus size={16} />
+                  <div className="flex gap-3">
+                    <div className="relative flex-1 group">
+                      <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+                      <input
+                        type="text"
+                        className="input-field pl-12 text-xs"
+                        placeholder="Type and press enter..."
+                        value={tagInput}
+                        onChange={e => setTagInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                      />
+                    </div>
+                    <button type="button" onClick={addTag} className="btn-secondary w-12 h-12 flex items-center justify-center p-0 rounded-xl">
+                      <Plus size={20} />
                     </button>
                   </div>
                 </div>
@@ -224,19 +239,23 @@ export default function TaskModal({ task, onClose }) {
             )}
 
             {activeTab === 'assign' && !isGuest && (
-              <div>
-                <label className="block text-xs text-text-muted mb-1.5 flex items-center gap-1">
-                  <Users size={12} /> Assign collaborators
+              <div className="animate-fade-in">
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                   Search Collaborators
                 </label>
-                <input
-                  type="text"
-                  className="input-field text-sm"
-                  placeholder="Search by name or email..."
-                  value={searchUsers}
-                  onChange={e => setSearchUsers(e.target.value)}
-                />
+                <div className="relative group mb-6">
+                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+                  <input
+                    type="text"
+                    className="input-field pl-12 text-sm"
+                    placeholder="Name or email address..."
+                    value={searchUsers}
+                    onChange={e => setSearchUsers(e.target.value)}
+                  />
+                </div>
+
                 {foundUsers.length > 0 && (
-                  <div className="mt-2 bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
+                  <div className="mt-2 bg-surface-2/40 border border-border-subtle rounded-2xl overflow-hidden animate-slide-up">
                     {foundUsers.map(u => (
                       <button
                         key={u._id}
@@ -248,46 +267,54 @@ export default function TaskModal({ task, onClose }) {
                           setSearchUsers('');
                           setFoundUsers([]);
                         }}
-                        className="flex items-center gap-3 w-full px-3 py-2 hover:bg-surface-2 transition-colors text-left"
+                        className="flex items-center gap-4 w-full px-4 py-3 hover:bg-surface-2 transition-all text-left group"
                       >
-                        <div className="w-7 h-7 rounded-full bg-accent-primary flex items-center justify-center text-white text-xs">
+                        <div className="w-10 h-10 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center text-accent-primary font-black text-sm group-hover:bg-accent-primary group-hover:text-white transition-all">
                           {u.name[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm text-text-primary">{u.name}</p>
-                          <p className="text-xs text-text-muted">{u.email}</p>
+                          <p className="text-sm font-bold text-text-primary uppercase tracking-tight">{u.name}</p>
+                          <p className="text-xs text-text-muted font-medium">{u.email}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 )}
+
                 {form.assignedTo.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-xs text-text-muted mb-2">Assigned ({form.assignedTo.length})</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="mt-8">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-4">Assigned Experts ({form.assignedTo.length})</p>
+                    <div className="flex flex-wrap gap-3">
                       {form.assignedTo.map(id => (
-                        <span key={id} className="tag bg-accent-primary/20 text-accent-glow border border-accent-primary/30">
-                          {typeof id === 'object' ? id.name : id.slice(0, 8)}
-                          <button type="button" onClick={() => setForm(f => ({ ...f, assignedTo: f.assignedTo.filter(i => i !== id) }))}>
-                            <X size={10} />
+                        <span key={id} className="tag bg-accent-primary/10 text-accent-primary border border-accent-primary/20 font-bold px-4 py-2">
+                          <span className="truncate max-w-[150px]">
+                            {typeof id === 'object' ? id.name : id.slice(0, 12)}
+                          </span>
+                          <button type="button" onClick={() => setForm(f => ({ ...f, assignedTo: f.assignedTo.filter(i => i !== id) }))} className="ml-2 hover:text-danger">
+                            <X size={14} />
                           </button>
                         </span>
                       ))}
                     </div>
                   </div>
                 )}
-                {isGuest && <p className="text-text-muted text-sm">Sign in to assign collaborators</p>}
+                {isGuest && (
+                  <div className="text-center py-10 opacity-40">
+                    <Users size={40} className="mx-auto mb-3" />
+                    <p className="text-xs font-bold uppercase tracking-widest">Sign in to collaborate</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex gap-3 p-5 border-t border-border-subtle">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1">
-              Cancel
+          <div className="flex gap-4 p-6 md:p-8 border-t border-border-subtle bg-surface-1/10 mt-auto">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1 font-bold uppercase tracking-widest text-[11px] py-4">
+              Dismiss
             </button>
-            <button type="submit" disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-              {loading ? <Loader variant="spinner" size="sm" /> : (isEditing ? 'Save Changes' : 'Create Task')}
+            <button type="submit" disabled={loading} className="btn-primary flex-1 font-bold uppercase tracking-widest text-[11px] py-4 shadow-blue">
+              {loading ? <Loader variant="spinner" size="sm" /> : (isEditing ? 'Confirm Changes' : 'Initialize Task')}
             </button>
           </div>
         </form>
@@ -295,3 +322,4 @@ export default function TaskModal({ task, onClose }) {
     </div>
   );
 }
+

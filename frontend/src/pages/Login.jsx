@@ -93,109 +93,111 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-accent-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-neon-cyan/5 rounded-full blur-3xl" />
+      {/* Background subtle gradients */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent-primary/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent-primary/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2" />
       </div>
 
-      <div className="w-full max-w-md relative">
+      <div className="w-full max-w-md relative animate-fade-in">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-accent-primary rounded-2xl mb-4 shadow-glow">
-            <Zap size={28} className="text-white" />
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-surface-1 border border-border-subtle rounded-2xl mb-6 shadow-subtle group hover:border-accent-primary/50 transition-colors">
+            <Zap size={32} className="text-accent-primary fill-accent-primary/10 group-hover:scale-110 transition-transform" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-text-primary">Welcome back</h1>
-          <p className="text-text-secondary mt-2">Sign in to TaskFlow</p>
+          <h1 className="text-3xl font-display font-black text-text-primary tracking-tight">Welcome Back</h1>
+          <p className="text-text-muted mt-2 font-medium">Continue your journey with TaskFlow</p>
         </div>
 
-        {/* Form */}
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-border-default">
+        {/* Card */}
+        <div className="card bg-surface-1/40 backdrop-blur-xl border-border-subtle p-8 sm:p-10 shadow-2xl">
           {isMagicLinkSent ? (
-            <div className="text-center space-y-4 py-4 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-accent-primary/10 rounded-full text-accent-primary mb-2">
-                <Mail size={32} />
+            <div className="text-center space-y-6 py-2 animate-fade-in">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-accent-primary/10 rounded-full text-accent-primary mb-2">
+                <Mail size={40} strokeWidth={1.5} />
               </div>
-              <h2 className="text-xl font-bold text-text-primary">Check your email</h2>
-              <p className="text-text-secondary">
-                We've sent a magic login link to <span className="text-text-primary font-medium">{form.email}</span>.
-              </p>
-              <p className="text-text-muted text-sm px-4">
-                The link will expire in 5 minutes. Please click it to sign in to your dashboard.
-              </p>
-              <div className="pt-4 space-y-3">
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary">Check your inbox</h2>
+                <p className="text-text-muted mt-2 leading-relaxed">
+                  We've sent a magic link to <br />
+                  <span className="text-text-primary font-bold">{form.email}</span>
+                </p>
+              </div>
+              
+              <div className="pt-6 space-y-4">
                 <button
                   onClick={handleSubmit}
                   disabled={loading || resendTimer > 0}
-                  className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed text-xs uppercase tracking-widest"
+                  className="w-full btn-primary py-3.5 disabled:opacity-50 font-bold uppercase tracking-widest text-[11px]"
                 >
                   {loading ? <Loader variant="spinner" size="sm" /> : 
-                    resendTimer > 0 ? `Resend available in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Magic Link'}
+                    resendTimer > 0 ? `Resend in ${Math.floor(resendTimer / 60)}:${(resendTimer % 60).toString().padStart(2, '0')}` : 'Resend Magic Link'}
                 </button>
                 <button 
                   onClick={() => setIsMagicLinkSent(false)}
-                  className="text-text-muted hover:text-text-primary text-sm font-medium transition-colors"
+                  className="text-text-muted hover:text-text-primary text-xs font-bold uppercase tracking-wider transition-colors"
                 >
-                  Back to login form
+                  Change Email Address
                 </button>
               </div>
             </div>
           ) : (
             <>
               {errors.general && (
-                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex items-center gap-2">
-                  <ShieldAlert size={16} /> {errors.general}
+                <div className="mb-6 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm font-medium flex items-center gap-3">
+                  <ShieldAlert size={18} /> {errors.general}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-text-secondary mb-1.5">Email</label>
-                  <div className="relative">
-                    <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <label className="block text-xs font-bold text-text-muted uppercase tracking-widest mb-2.5">Email Address</label>
+                  <div className="relative group">
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
                     <input
                       type="email"
-                      className={`input-field pl-9 ${errors.email ? 'border-red-500/50' : ''}`}
-                      placeholder="you@example.com"
+                      className={`input-field pl-12 ${errors.email ? 'border-danger/50' : ''}`}
+                      placeholder="name@company.com"
                       value={form.email}
                       onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                       required
                     />
                   </div>
-                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                  {errors.email && <p className="text-danger text-xs font-bold mt-2">{errors.email}</p>}
                 </div>
-
 
                 <button
                   type="submit"
                   disabled={loading || Object.keys(errors).length > 0}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary w-full flex items-center justify-center gap-3 py-4 shadow-blue"
                 >
                   {loading ? (
                     <Loader variant="spinner" size="sm" />
                   ) : (
-                    <>Sign In <ArrowRight size={16} /></>
+                    <span className="flex items-center gap-2 font-bold uppercase tracking-widest text-[11px]">
+                      Send Magic Link <ArrowRight size={16} />
+                    </span>
                   )}
                 </button>
               </form>
 
-              <div className="mt-4 flex items-center gap-3">
-                <hr className="flex-1 border-border-subtle" />
-                <span className="text-text-muted text-xs">or</span>
-                <hr className="flex-1 border-border-subtle" />
+              <div className="mt-8 flex items-center gap-4">
+                <div className="flex-1 h-px bg-border-subtle" />
+                <span className="text-text-muted text-[10px] font-bold uppercase tracking-widest">or</span>
+                <div className="flex-1 h-px bg-border-subtle" />
               </div>
 
               <button
                 onClick={handleGuest}
-                className="mt-4 w-full px-4 py-3 rounded-lg border border-border-default text-text-secondary hover:text-text-primary hover:border-border-strong hover:bg-surface-1 transition-all text-sm font-medium"
+                className="mt-8 w-full btn-secondary py-3.5 font-bold uppercase tracking-widest text-[11px]"
               >
                 Continue as Guest
               </button>
 
-              <p className="text-center text-text-muted text-sm mt-6">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-accent-glow hover:text-white transition-colors font-medium">
-                  Sign up
+              <p className="text-center text-text-muted text-sm mt-10 font-medium">
+                New to TaskFlow?{' '}
+                <Link to="/register" className="text-accent-primary hover:text-accent-hover font-bold transition-colors">
+                  Create an account
                 </Link>
               </p>
             </>
