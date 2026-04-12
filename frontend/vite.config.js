@@ -34,10 +34,12 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:5000",
         changeOrigin: true,
+        secure: false,
+        timeout: 30000,
+        proxyTimeout: 30000,
         configure: (proxy) => {
           proxy.on("error", (err) => {
-            if (err.code === "ECONNABORTED" || err.code === "ECONNRESET")
-              return;
+            if (err.code === "ECONNABORTED" || err.code === "ECONNRESET") return;
             console.error("API proxy error:", err);
           });
         },
@@ -46,10 +48,12 @@ export default defineConfig({
         target: "http://localhost:5000",
         ws: true,
         changeOrigin: true,
+        secure: false,
+        timeout: 30000,
+        proxyTimeout: 30000,
         configure: (proxy) => {
           proxy.on("error", (err) => {
-            if (err.code === "ECONNABORTED" || err.code === "ECONNRESET")
-              return;
+            if (err.code === "ECONNABORTED" || err.code === "ECONNRESET") return;
             console.error("WS proxy error:", err);
           });
         },
