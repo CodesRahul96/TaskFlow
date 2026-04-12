@@ -21,6 +21,12 @@ const verifyRecaptcha = async (token) => {
 
     const data = await response.json();
 
+    // Development Bypass: If in development, we allow it to pass even if Google rejects it (e.g. domain mismatch)
+    if (!data.success && process.env.NODE_ENV === "development") {
+      console.warn("reCAPTCHA check failed, but bypassing because NODE_ENV is 'development'.");
+      return { success: true, score: 1.0, isBypass: true };
+    }
+
     if (!data.success) {
       console.error("reCAPTCHA Verification Failed:", data["error-codes"]);
     }
