@@ -1,7 +1,16 @@
 const Task = require("../models/Task");
 const logAudit = require("../utils/audit");
 
-// GET /api/tasks
+/**
+ * Task Management Controller
+ * Handles CRUD operations, status transitions, and collaborative task orchestration.
+ */
+
+/**
+ * Retrieves tasks with support for filtering, searching, and custom sorting.
+ * @route GET /api/tasks
+ * @access Private
+ */
 exports.getTasks = async (req, res, next) => {
   try {
     const { status, priority, tag, search, sort = "-createdAt" } = req.query;
@@ -48,7 +57,11 @@ exports.getTasks = async (req, res, next) => {
   }
 };
 
-// POST /api/tasks
+/**
+ * Creates a new task and associated audit trails.
+ * @route POST /api/tasks
+ * @access Private
+ */
 exports.createTask = async (req, res, next) => {
   try {
     const task = await Task.create({ ...req.body, owner: req.user._id });
@@ -63,7 +76,11 @@ exports.createTask = async (req, res, next) => {
   }
 };
 
-// GET /api/tasks/:id
+/**
+ * Retrieves a single task by ID with access validation.
+ * @route GET /api/tasks/:id
+ * @access Private
+ */
 exports.getTask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id)
@@ -81,7 +98,11 @@ exports.getTask = async (req, res, next) => {
   }
 };
 
-// PUT /api/tasks/:id
+/**
+ * Updates task properties and synchronizes changes across collaborative sessions.
+ * @route PUT /api/tasks/:id
+ * @access Private
+ */
 exports.updateTask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);

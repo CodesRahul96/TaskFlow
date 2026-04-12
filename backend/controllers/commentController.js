@@ -18,7 +18,16 @@ exports.getComments = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// POST /api/comments/:taskId
+/**
+ * Comment Management Controller
+ * Handles nested communication and task-level discussions.
+ */
+
+/**
+ * Adds a new comment to a specified task.
+ * @route POST /api/comments/:taskId
+ * @access Private
+ */
 exports.addComment = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.taskId);

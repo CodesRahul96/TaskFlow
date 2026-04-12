@@ -1,6 +1,15 @@
 const User = require("../models/User");
 
-// GET /api/users/search?q=
+/**
+ * User Directory Controller
+ * Provides lookup services for collaboration and identity resolution.
+ */
+
+/**
+ * Searches users for task assignment and collaboration.
+ * @route GET /api/users/search
+ * @access Private
+ */
 exports.searchUsers = async (req, res, next) => {
   try {
     const { q } = req.query;

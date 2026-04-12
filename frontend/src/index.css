@@ -5,12 +5,10 @@
 @tailwind utilities;
 
 :root {
-  /* 
-   * THEME COMPONENT SYSTEM (RGB)
-   * All color variables are stored as space-separated RGB components.
-   * This allows for functional 'rgba()' color injection across the app,
-   * bypassing the fragile 'Unexpected Token' errors during PostCSS @apply 
-   * expansion while maintaining perfect theme-aware transparency.
+  /** 
+   * DESIGN SYSTEM CORE (RGB)
+   * Colors are stored as raw RGB components to enable functional transparency management
+   * across the application via rgba() injection.
    */
   --bg-primary: 248, 249, 250;
   --bg-secondary: 255, 255, 255;
@@ -99,12 +97,13 @@
   }
   .btn-ghost {
     @apply text-text-muted hover:text-text-primary hover:bg-surface-2 font-bold px-3 py-2 rounded-lg
-           transition-all duration-200 cursor-pointer border-0 text-[10px] uppercase tracking-widest;
+           transition-all duration-200 cursor-pointer border-0 text-[10px] uppercase tracking-widest
+           active:scale-95;
   }
   .input-field {
     @apply w-full border border-border-subtle text-text-primary 
            rounded-xl px-4 py-3.5 text-sm outline-none shadow-inset
-           transition-all duration-300;
+           transition-all duration-300 hover:border-border-default focus:ring-2 focus:ring-accent-primary/20;
     background-color: rgba(var(--surface-1), 0.5);
   }
   .input-field::placeholder {
@@ -130,6 +129,17 @@
   }
   .nav-indicator {
     @apply absolute left-0 w-1 bg-accent-primary rounded-r-full shadow-blue transition-all duration-300 ease-in-out;
+  }
+
+  /**
+   * Interactive Micro-animations
+   */
+  .interactive-scale {
+    @apply transition-transform duration-200 active:scale-[0.98] hover:scale-[1.01];
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-[0_0_20px_rgba(var(--accent-primary),0.1)];
   }
 
   /* Staggered Animations */

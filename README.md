@@ -1,65 +1,43 @@
 # TaskFlow 💎
-A clean, full-stack task manager that actually helps you schedule your day. It combines a standard task list with a **time-blocking calendar** so you can stop guessing when you'll get stuff done.
+A sophisticated, full-stack productivity ecosystem designed to bridge the gap between task management and time-blocking orchestration. 
 
 ---
 
-## 🛠 What's inside?
-- **Frontend**: React + Vite (super fast), Tailwind for the vibes, Zustand for state.
-- **Backend**: Node.js + Express + MongoDB.
-- **Real-time**: Socket.IO for sync across tabs.
-- **Offline**: It's a PWA, so it works even when your internet doesn't.
+## 🏗 System Architecture
+
+The platform architecture is built for high-performance delivery and real-time synchronization:
+
+- **Frontend Engine**: React 18+ leveraging **Vite** for optimized build cycles and **Zustand** for predictable atomic state management.
+- **Backend Service**: A robust **Node.js/Express** microservice architecture integrated with **MongoDB** (Atlas) for persistent storage.
+- **Communication Layer**: **Socket.IO** integration for asynchronous, low-latency data synchronization across multi-device sessions.
+- **Platform Integrity**: **helmet**, **express-mongo-sanitize**, and **express-rate-limit** provide a hardened security perimeter.
 
 ---
 
-## 🚀 Quick Start (Local)
+## 🛡 Security & Identity Management
 
-### 1. The Backend
-```bash
-cd backend
-npm install
-cp .env.example .env  # 👈 Don't forget to set your SMTP & MongoDB vars!
-npm run dev           # Runs on port 5000
-```
+Integrated enterprise-grade security protocols:
 
-### 2. The Frontend
-```bash
-cd frontend
-npm install
-# Ensure .env has VITE_API_URL=http://localhost:5000
-npm run dev           # Runs on port 5173
-```
-Now just open `http://localhost:5173`.
+- **Passwordless Authentication**: Zero-friction login via Magic Links, eliminating common credential attack vectors.
+- **Multilayered Verification**: Automated request validation powered by **Google reCAPTCHA v3** (Invisible).
+- **Identity Assurance**: Mandatory email verification loops and Multi-Factor Authentication (MFA) support using TOTP.
+- **Audit Logging**: Comprehensive system-level logging for critical lifecycle events.
 
 ---
 
-## ✨ Features that actually work
-- **Task + Time Blocking**: Create a task, then drag a block onto the calendar to "lock in" your focus.
-- **Email Verification**: New accounts require email verification for extra security.
-- **Magic Link Login**: Passwordless, secure login via email (no more forgetting passwords!).
-- **Guest Mode**: You can use the app without an account. It saves to your browser.
+## ✨ Integrated Features
+
+- **Standardized Orchestration**: Seamless transition from task creation to calendar scheduling via time-blocking heuristics.
+- **Real-Time Synergy**: Collective task editing and live-status updates across all active connections.
+- **PWA Capabilities**: Resilient offline functionality ensured through service-worker persistence.
+- **Context-Aware UI**: A custom Design System using a dedicated RGB variable architecture for perfect theme-aware transparency.
 
 ---
 
-## ☁️ Deployment Notes
-- **Hosting**: I recommend **Render** for the backend (because Netlify doesn't like WebSockets) and **Vercel/Netlify** for the frontend.
-- **Environment Vars**: Just set `VITE_API_URL` on the frontend to point to your backend link. See the `frontend/README.md` for more info.
+## 🚀 Deployment & Scaling
 
----
+- **Backend Logic**: Optimized for deployment on **Render** (supporting full WebSocket logic).
+- **Edge Deployment**: Frontend build ready for **Vercel** or **Netlify** edge nodes.
+- **Environment Configuration**: Configurable via `VITE_API_URL` for seamless environment parity between development and staging.
 
-## 🏗 Project Layout
-- `/frontend`: The UI and all the calendar logic.
-- `/backend`: API, DB schemas, and socket events.
-- `/Project Screenshots`: If you want to see what it looks like before running.
-
----
-
-## 📝 Technical Implementation Logs
-
-### Email Authentication Flow (March 2026)
-1. **Registration**: User registers -> Backend generates a 32-char hex `verificationToken` -> User is saved as `isVerified: false`.
-2. **Email Verification**: `sendEmail` utility sends a link to `FRONTEND_URL/verify-email?token=...`.
-3. **Verification Page**: Frontend catches the token -> Calls Backend `/api/auth/verify-email` -> User set to `isVerified: true`.
-4. **Login**: User enters email/pass -> Backend generates `loginToken` (10 min expiry) -> Sends Magic Link to email.
-5. **Magic Link Verification**: User clicks link -> Frontend catches `loginToken` -> Calls Backend `/api/auth/verify-login` -> JWT generated and user logged in.
-
-*Built for productivity.* 🚀
+*Engineered for performance and clarity.* 🚀

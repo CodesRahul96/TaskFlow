@@ -25,14 +25,24 @@ const io = new Server(server, {
   },
 });
 
-// Middleware
+/**
+ * HTTP Middleware
+ */
 app.use(helmet({ crossOriginEmbedderPolicy: false }));
 app.use(mongoSanitize());
 app.use(cookieParser());
+app.use(express.json({ limit: "10mb" }));
 
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan("dev"));
+}
+
+/**
+ * Traffic Control & Security
+ */
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 mins
-  max: 100, // Limit each IP to 100 requests per window
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
   message: { message: "Too many requests, please try again later." },
 });
 app.use("/api/", globalLimiter);
@@ -43,13 +53,15 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "10mb" }));
-if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
 
-// Expose io to routes
+/**
+ * Interface Exposure
+ */
 app.set("io", io);
 
-// Routes
+/**
+ * API Routes
+ */
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/tasks", require("./routes/tasks"));
 app.use("/api/timeblocks", require("./routes/timeblocks"));
@@ -57,18 +69,20 @@ app.use("/api/comments", require("./routes/comments"));
 app.use("/api/audit", require("./routes/audit"));
 app.use("/api/users", require("./routes/users"));
 
-// Health check
+/**
+ * System Routes
+ */
 app.get("/api/health", (_, res) =>
   res.json({ status: "ok", env: process.env.NODE_ENV }),
 );
 
-// 404
 app.use((_, res) => res.status(404).json({ message: "Route not found" }));
 
-// Error handler
 app.use(errorHandler);
 
-// Socket
+/**
+ * Real-time Communication (Socket.IO)
+ */
 io.on("connection", (socket) => {
   socket.on("join-room", (userId) => socket.join(userId));
   socket.on("join-task", (taskId) => socket.join(`task:${taskId}`));
@@ -76,12 +90,15 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {});
 });
 
-// DB + Start — skipped when running as a Serverless Function (Vercel/Netlify)
+/**
+ * Initialization
+ * Skips startup when running in serverless environments (Render/Netlify).
+ */
 if (process.env.VERCEL !== "1" && process.env.NETLIFY !== "true") {
   connectDB().then(() => {
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () =>
-      console.log(`Server running on port ${PORT} [${process.env.NODE_ENV}]`),
+      console.log(`[SYS] Server established on port ${PORT} (${process.env.NODE_ENV})`),
     );
   });
 }

@@ -23,8 +23,11 @@ const useAuthStore = create((set, get) => ({
   setOnline: (status) => set({ isOnline: status }),
 
   /**
-   * STEP 1: Login Request
-   * Validates credentials and triggers a Magic Link email from the backend.
+   * Orchestrates the login request.
+   * Validates credentials and triggers a secure Magic Link email.
+   * @param {string} email
+   * @param {string} sessionId
+   * @param {string} captchaToken
    */
   login: async (email, sessionId, captchaToken) => {
     set({ loading: true });
@@ -42,8 +45,11 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * STEP 2 (Optional): Register
-   * Creates a new account and triggers a verification email.
+   * Handles new account registration.
+   * Initiates the identity verification workflow.
+   * @param {string} name
+   * @param {string} email
+   * @param {string} captchaToken
    */
   register: async (name, email, captchaToken) => {
     set({ loading: true });
@@ -61,8 +67,9 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * STEP 3: Verify Email
-   * Finalizes registration by verifying the token from the email link.
+   * Verifies the user's email address.
+   * Completes the registration loop using a verification token.
+   * @param {string} token
    */
   verifyEmail: async (token) => {
     set({ loading: true });
@@ -80,8 +87,10 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * STEP 4: Verify Login (Magic Link)
-   * Exchanges the temporary login token for a persistent JWT session.
+   * Finalizes the magic link authentication.
+   * Exchanges a temporary login token for a secure JWT session.
+   * @param {string} token
+   * @param {string} sessionId
    */
   verifyLogin: async (token, sessionId) => {
     set({ loading: true });

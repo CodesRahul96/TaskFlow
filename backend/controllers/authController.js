@@ -9,44 +9,42 @@ const QRCode = require("qrcode");
 const verifyRecaptcha = require("../utils/recaptcha");
 
 /**
- * AUTHENTICATION IMPLEMENTATION STEPS (Email + Magic Link):
- * 
- * 1. Register: Create user with `isVerified: false`. Generate `verificationToken` (hex).
- *    - User is NOT allowed to login until email is verified.
- * 2. Verify Email: Match `verificationToken` from query string. Set `isVerified: true`.
- * 3. Login: Verify email/pass. If OK, generate `loginToken` (Magic Link).
- *    - Magic Link expires in 10 minutes for security.
- * 4. Verify Login: Match `loginToken`. Generate JWT (long-lived session) and Return User.
+ * Authentication Controller
+ * Handles user registration, verification, and multi-device login flows.
+ * Uses a token-based magic link system for secure, passwordless authentication.
  */
 
-// POST /api/auth/register
+/**
+ * Registers a new user and sends a verification email.
+ * @route POST /api/auth/register
+ * @access Public
+ */
 exports.register = async (req, res, next) => {
   try {
     const { name, email, captchaToken } = req.body;
 
-    // 0. Verify reCAPTCHA
+    // Verify reCAPTCHA integrity before processing
     const { success, score } = await verifyRecaptcha(captchaToken);
     if (!success) {
       return res.status(400).json({ 
-        message: "CAPTCHA verification failed. Please try again.",
+        message: "Security verification failed. Please try again.",
         score 
       });
     }
 
-    if (await User.findOne({ email }))
+    // Ensure unique account per email
+    if (await User.findOne({ email })) {
       return res.status(400).json({ message: "Email already registered" });
+    }
 
-    // 1. Create verification token
     const verificationToken = crypto.randomBytes(32).toString("hex");
 
-    // 2. Create user (isVerified defaults to false)
     const user = await User.create({
       name,
       email,
       verificationToken,
     });
 
-    // 3. Send verification email
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
     const message = `Welcome to TaskFlow, ${name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}`;
 
@@ -71,7 +69,11 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// GET /api/auth/verify-email
+/**
+ * Verifies user email via token-matching.
+ * @route GET /api/auth/verify-email
+ * @access Public
+ */
 exports.verifyEmail = async (req, res, next) => {
   try {
     const { token } = req.query;
@@ -91,16 +93,20 @@ exports.verifyEmail = async (req, res, next) => {
   }
 };
 
-// POST /api/auth/login
+/**
+ * Initiates login by sending a magic link to the user's email.
+ * @route POST /api/auth/login
+ * @access Public
+ */
 exports.login = async (req, res, next) => {
   try {
     const { email, captchaToken } = req.body;
 
-    // 0. Verify reCAPTCHA
+    // Verify reCAPTCHA integrity
     const { success, score } = await verifyRecaptcha(captchaToken);
     if (!success) {
       return res.status(400).json({ 
-        message: "CAPTCHA verification failed. Please try again.",
+        message: "Security verification failed. Please try again.",
         score 
       });
     }
@@ -146,7 +152,11 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// GET /api/auth/verify-login
+/**
+ * Finalizes login by verifying the magic link token and issuing a session.
+ * @route GET /api/auth/verify-login
+ * @access Public
+ */
 exports.verifyLogin = async (req, res, next) => {
   try {
     const { token } = req.query;
