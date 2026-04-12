@@ -3,6 +3,34 @@ A sophisticated, full-stack productivity ecosystem designed to bridge the gap be
 
 ---
 
+## 🚀 Getting Started
+
+If you want to run this locally, follow these steps. You'll need Node.js and MongoDB installed.
+
+### 1. Backend Prep
+Head into the `backend` folder and grab the dependencies. 
+```bash
+cd backend
+npm install
+```
+Copy `.env.example` to a new `.env` file and fill in your MongoDB URI and SMTP settings (for magic links). Then fire it up:
+```bash
+npm run dev # Runs on http://localhost:5000
+```
+
+### 2. Frontend Prep
+In a new terminal, hop into the `frontend` folder:
+```bash
+cd frontend
+npm install
+```
+Same deal here—copy `.env.example` to `.env`. For local dev, you can leave `VITE_API_URL` blank (the proxy handles it). Just make sure to add your Google ReCaptcha Site Key.
+```bash
+npm run dev # Runs on http://localhost:5173 
+```
+
+---
+
 ## 🏗 System Architecture
 
 The platform architecture is built for high-performance delivery and real-time synchronization:
