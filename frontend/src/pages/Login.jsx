@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Zap, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import useAuthStore from '../store/authStore';
 import { useSocket } from '../hooks/useSocket';
 import Loader from '../components/ui/Loader';
@@ -15,6 +16,7 @@ export default function Login() {
   const { login, loading, setGuestMode } = useAuthStore();
   const { emit, on, off } = useSocket(true);
   const navigate = useNavigate();
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Real-time validation
   useEffect(() => {
@@ -70,8 +72,15 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (Object.keys(errors).length > 0) return;
+
+    if (!executeRecaptcha) {
+      setErrors(f => ({ ...f, general: "reCAPTCHA not initialized yet. Please wait a moment." }));
+      return;
+    }
+
+    const captchaToken = await executeRecaptcha('login');
     
-    const result = await login(form.email, sessionId);
+    const result = await login(form.email, sessionId, captchaToken);
     if (result.success) {
       setIsMagicLinkSent(true);
       setResendTimer(300); // Start 5 min cooldown

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Zap, Mail, User, ArrowRight, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import useAuthStore from '../store/authStore';
 import Loader from '../components/ui/Loader';
 
@@ -10,6 +11,7 @@ export default function Register() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { register, loading } = useAuthStore();
   const navigate = useNavigate();
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   // Real-time password strength and validation
   useEffect(() => {
@@ -24,8 +26,15 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (Object.keys(errors).length > 0) return;
+
+    if (!executeRecaptcha) {
+      setErrors(f => ({ ...f, general: "reCAPTCHA not initialized yet. Please wait a moment." }));
+      return;
+    }
+
+    const captchaToken = await executeRecaptcha('register');
     
-    const result = await register(form.name, form.email);
+    const result = await register(form.name, form.email, captchaToken);
     if (result.success) {
       setIsSubmitted(true);
     } else if (result.errors) {

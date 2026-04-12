@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import { lazy, Suspense, useEffect } from "react";
 import useAuthStore from "./store/authStore";
 import Layout from "./components/layout/Layout";
@@ -79,28 +80,32 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AppRoutes />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: "rgb(var(--surface-2))",
-            color: "rgb(var(--text-primary))",
-            border: "1px solid rgb(var(--border-strong) / 0.1)",
-            borderRadius: "16px",
-            fontSize: "12px",
-            fontWeight: "700",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            boxShadow: "0 10px 15px -3px var(--shadow-color)",
-          },
-          success: { iconTheme: { primary: "rgb(var(--success))", secondary: "#fff" } },
-          error:   { iconTheme: { primary: "rgb(var(--danger))", secondary: "#fff" } },
-        }}
-      />
-    </BrowserRouter>
+    <GoogleReCaptchaProvider reCaptchaKey={recaptchaKey ? recaptchaKey : "MISSING_KEY"}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AppRoutes />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "rgb(var(--surface-2))",
+              color: "rgb(var(--text-primary))",
+              border: "1px solid rgb(var(--border-strong) / 0.1)",
+              borderRadius: "16px",
+              fontSize: "12px",
+              fontWeight: "700",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              boxShadow: "0 10px 15px -3px var(--shadow-color)",
+            },
+            success: { iconTheme: { primary: "rgb(var(--success))", secondary: "#fff" } },
+            error:   { iconTheme: { primary: "rgb(var(--danger))", secondary: "#fff" } },
+          }}
+        />
+      </BrowserRouter>
+    </GoogleReCaptchaProvider>
   );
 }
 

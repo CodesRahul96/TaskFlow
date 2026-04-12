@@ -26,10 +26,10 @@ const useAuthStore = create((set, get) => ({
    * STEP 1: Login Request
    * Validates credentials and triggers a Magic Link email from the backend.
    */
-  login: async (email, sessionId) => {
+  login: async (email, sessionId, captchaToken) => {
     set({ loading: true });
     try {
-      const { data } = await api.post('/auth/login', { email, sessionId });
+      const { data } = await api.post('/auth/login', { email, sessionId, captchaToken });
       set({ loading: false });
       toast.success(data.message || 'Login link sent to your email!');
       return { success: true, message: data.message };
@@ -45,10 +45,10 @@ const useAuthStore = create((set, get) => ({
    * STEP 2 (Optional): Register
    * Creates a new account and triggers a verification email.
    */
-  register: async (name, email) => {
+  register: async (name, email, captchaToken) => {
     set({ loading: true });
     try {
-      const { data } = await api.post('/auth/register', { name, email });
+      const { data } = await api.post('/auth/register', { name, email, captchaToken });
       set({ loading: false });
       toast.success(data.message || 'Verification email sent!');
       return { success: true, message: data.message };

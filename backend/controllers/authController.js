@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
+const verifyRecaptcha = require("../utils/recaptcha");
 
 /**
  * AUTHENTICATION IMPLEMENTATION STEPS (Email + Magic Link):
@@ -21,7 +22,17 @@ const QRCode = require("qrcode");
 // POST /api/auth/register
 exports.register = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, captchaToken } = req.body;
+
+    // 0. Verify reCAPTCHA
+    const { success, score } = await verifyRecaptcha(captchaToken);
+    if (!success) {
+      return res.status(400).json({ 
+        message: "CAPTCHA verification failed. Please try again.",
+        score 
+      });
+    }
+
     if (await User.findOne({ email }))
       return res.status(400).json({ message: "Email already registered" });
 
@@ -83,7 +94,17 @@ exports.verifyEmail = async (req, res, next) => {
 // POST /api/auth/login
 exports.login = async (req, res, next) => {
   try {
-    const { email } = req.body;
+    const { email, captchaToken } = req.body;
+
+    // 0. Verify reCAPTCHA
+    const { success, score } = await verifyRecaptcha(captchaToken);
+    if (!success) {
+      return res.status(400).json({ 
+        message: "CAPTCHA verification failed. Please try again.",
+        score 
+      });
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {
