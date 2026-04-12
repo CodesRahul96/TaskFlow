@@ -41,3 +41,7 @@ The app uses a secure 2-step verification process:
 ## 🚀 Deployment (Render.com)
 
 Since this uses WebSockets, **Hosting it on Render is better than Vercel**. Vercel is serverless and doesn't support persistent socket connections properly.
+
+---
+
+**Maintained by [CodesRahul96](https://github.com/CodesRahul96)**

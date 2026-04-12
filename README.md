@@ -69,3 +69,11 @@ Integrated enterprise-grade security protocols:
 - **Environment Configuration**: Configurable via `VITE_API_URL` for seamless environment parity between development and staging.
 
 *Engineered for performance and clarity.* 🚀
+
+---
+
+## 👨‍💻 Developer
+
+**CodesRahul96**
+- GitHub: [@CodesRahul96](https://github.com/CodesRahul96)
+- Project: TaskFlow v2

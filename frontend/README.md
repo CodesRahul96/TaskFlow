@@ -28,3 +28,7 @@ This app is a Progressive Web App. You can install it on your phone or desktop b
 
 - `VerifyEmail.jsx`: Handles the incoming token from registration emails.
 - `VerifyLogin.jsx`: Handles the Magic Link token for secure login completion.
+
+---
+
+**Maintained by [CodesRahul96](https://github.com/CodesRahul96)**
