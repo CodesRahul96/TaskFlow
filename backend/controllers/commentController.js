@@ -1,4 +1,5 @@
 const Comment = require("../models/Comment");
+const Notification = require("../models/Notification");
 const Task = require("../models/Task");
 const logAudit = require("../utils/audit");
 
@@ -41,6 +42,25 @@ exports.addComment = async (req, res, next) => {
     await logAudit(req.user._id, req.user.name, "comment_added", task._id, {});
     const io = req.app.get("io");
     io.to(`task:${req.params.taskId}`).emit("comment-added", { comment });
+
+    // Build notification recipients (include owner + all assigned users, excluding current user)
+    const recipients = new Set([
+      task.owner.toString(),
+      ...(task.assignedTo || []).map(u => u.toString())
+    ]);
+    recipients.delete(req.user._id.toString());
+
+    for (const uid of recipients) {
+      const note = await Notification.create({
+        recipient: uid,
+        sender: req.user._id,
+        type: "comment_added",
+        task: task._id,
+        content: `commented on ${task.title}: "${req.body.content.substring(0, 30)}..."`
+      });
+      io.to(uid).emit("notification-received", { notification: note });
+    }
+
     res.status(201).json({ comment });
   } catch (err) { next(err); }
 };

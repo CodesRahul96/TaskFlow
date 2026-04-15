@@ -13,7 +13,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TasksPage = lazy(() => import("./pages/TasksPage"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 const AuditPage = lazy(() => import("./pages/AuditPage"));
-const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OfflinePage = lazy(() => import("./pages/OfflinePage"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
@@ -71,7 +71,7 @@ function AppRoutes() {
           <Route path="tasks"    element={<TasksPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="audit"    element={isAuth ? <AuditPage />   : <Navigate to="/login" />} />
-          <Route path="profile"  element={isAuth ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="settings" element={isAuth ? <SettingsPage /> : <Navigate to="/login" />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

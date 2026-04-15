@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
 const verifyRecaptcha = require("../utils/recaptcha");
+const logAudit = require("../utils/audit");
 
 /**
  * Authentication Controller
@@ -58,6 +59,7 @@ exports.register = async (req, res, next) => {
       res.status(201).json({
         message: "Registration successful! Please check your email to verify your account.",
       });
+      await logAudit(user._id, user.name, "user_registered", null, { email: user.email });
     } catch (err) {
       // If email fails, we might want to delete the user or just inform them
       user.verificationToken = undefined;
@@ -209,6 +211,7 @@ exports.verifyLogin = async (req, res, next) => {
       user,
       message: "Successfully logged in!",
     });
+    await logAudit(user._id, user.name, "user_login", null, { method: "magic_link" });
   } catch (err) {
     next(err);
   }
@@ -261,6 +264,7 @@ exports.verifyMFASetup = async (req, res, next) => {
     await user.save();
 
     res.json({ message: "MFA enabled successfully" });
+    await logAudit(user._id, user.name, "mfa_enabled", null, {});
   } catch (err) {
     next(err);
   }

@@ -68,6 +68,7 @@ app.use("/api/timeblocks", require("./routes/timeblocks"));
 app.use("/api/comments", require("./routes/comments"));
 app.use("/api/audit", require("./routes/audit"));
 app.use("/api/users", require("./routes/users"));
+app.use("/api/notifications", require("./routes/notifications"));
 
 /**
  * System Routes

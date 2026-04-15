@@ -3,6 +3,8 @@ import { X, Plus, Trash2, Check, Clock, MessageSquare, Activity, ChevronDown, Ed
 import { format } from 'date-fns';
 import useTaskStore from '../../store/taskStore';
 import useAuthStore from '../../store/authStore';
+import { useSocket } from '../../hooks/useSocket';
+import CollaboratorPicker from './CollaboratorPicker';
 import api from '../../api/client';
 import toast from 'react-hot-toast';
 
@@ -140,8 +142,9 @@ function AddTimeBlockForm({ taskId, onClose, isGuest }) {
 }
 
 export default function TaskDetail({ task, onEdit, onClose }) {
-  const { addSubtask, updateTask } = useTaskStore();
-  const { isGuest } = useAuthStore();
+  const { addSubtask, updateTask, tasks } = useTaskStore();
+  const { isGuest, user } = useAuthStore();
+  const socket = useSocket();
   const [newSubtask, setNewSubtask] = useState('');
   const [showBlockForm, setShowBlockForm] = useState(false);
   const [comments, setComments] = useState([]);
@@ -154,6 +157,30 @@ export default function TaskDetail({ task, onEdit, onClose }) {
     if (!isGuest && activeTab === 'comments') fetchComments();
     if (!isGuest && activeTab === 'activity') fetchAudit();
   }, [activeTab, task._id, isGuest]);
+
+  useEffect(() => {
+    if (isGuest) return;
+    
+    socket.joinTask(task._id);
+
+    const handleNewComment = ({ comment }) => {
+      // Only add if it belongs to this task (sanity check)
+      if (comment.task === task._id) {
+        setComments(prev => {
+          // Prevent duplicates
+          if (prev.some(c => c._id === comment._id)) return prev;
+          return [...prev, comment];
+        });
+      }
+    };
+
+    socket.on('comment-added', handleNewComment);
+
+    return () => {
+      socket.leaveTask(task._id);
+      socket.off('comment-added', handleNewComment);
+    };
+  }, [task._id, isGuest]);
 
   const fetchComments = async () => {
     setLoadingComments(true);
@@ -196,9 +223,27 @@ export default function TaskDetail({ task, onEdit, onClose }) {
     { key: 'timeblocks', label: 'Schedule', count: (task.timeBlocks || []).length },
     ...(!isGuest ? [
       { key: 'comments', label: 'Comments', count: comments.length },
+      { key: 'team', label: 'Team', count: (task.assignedTo || []).length },
       { key: 'activity', label: 'Activity' },
     ] : []),
   ];
+
+  const isOwner = task.owner?._id === user?._id || task.owner === user?._id;
+
+  const handleAddCollaborator = async (collaborator) => {
+    const current = (task.assignedTo || []).map(u => u._id || u);
+    if (current.includes(collaborator._id)) return;
+    
+    const updatedAssignedTo = [...current, collaborator._id];
+    await updateTask(task._id, { assignedTo: updatedAssignedTo }, isGuest);
+    toast.success(`${collaborator.name} joined the mission`);
+  };
+
+  const handleRemoveCollaborator = async (userId) => {
+    const updatedAssignedTo = (task.assignedTo || []).filter(u => (u._id || u) !== userId).map(u => u._id || u);
+    await updateTask(task._id, { assignedTo: updatedAssignedTo }, isGuest);
+    toast.success('Collaborator removed');
+  };
 
   return (
     <div className="h-full flex flex-col bg-bg-secondary border-l border-border-subtle animate-fade-in shadow-2xl">
@@ -363,6 +408,16 @@ export default function TaskDetail({ task, onEdit, onClose }) {
               <AddTimeBlockForm taskId={task._id} onClose={() => setShowBlockForm(false)} isGuest={isGuest} />
             )}
           </div>
+        )}
+        
+        {/* Team */}
+        {activeTab === 'team' && !isGuest && (
+          <CollaboratorPicker 
+            currentCollaborators={task.assignedTo || []}
+            onAdd={handleAddCollaborator}
+            onRemove={handleRemoveCollaborator}
+            isOwner={isOwner}
+          />
         )}
 
         {/* Comments */}

@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const Notification = require("../models/Notification");
 const logAudit = require("../utils/audit");
 
 /**
@@ -13,7 +14,7 @@ const logAudit = require("../utils/audit");
  */
 exports.getTasks = async (req, res, next) => {
   try {
-    const { status, priority, tag, search, sort = "-createdAt" } = req.query;
+    const { status, priority, tag, search, sort = "order" } = req.query;
     const filter = {
       $or: [{ owner: req.user._id }, { assignedTo: req.user._id }],
     };
@@ -136,6 +137,20 @@ exports.updateTask = async (req, res, next) => {
           assignedCount: newAssigned.length,
         },
       );
+
+      // Create notifications for newly added users
+      const addedUsers = newAssigned.filter(id => !prevAssigned.includes(id));
+      for (const uid of addedUsers) {
+        if (uid === req.user._id.toString()) continue;
+        const note = await Notification.create({
+          recipient: uid,
+          sender: req.user._id,
+          type: "task_assigned",
+          task: task._id,
+          content: `assigned you to task: ${task.title}`
+        });
+        io.to(uid).emit("notification-received", { notification: note });
+      }
     }
     const action =
       prevStatus !== task.status ? "task_status_changed" : "task_updated";
@@ -145,8 +160,13 @@ exports.updateTask = async (req, res, next) => {
     });
 
     const io = req.app.get("io");
-    task.assignedTo.forEach((uid) =>
-      io.to(uid.toString()).emit("task-updated", { task }),
+    const allRelevantUsers = new Set([
+      ...newAssigned,
+      ...prevAssigned,
+      task.owner.toString(),
+    ]);
+    allRelevantUsers.forEach((uid) =>
+      io.to(uid).emit("task-updated", { task }),
     );
     res.json({ task });
   } catch (err) {
@@ -411,6 +431,29 @@ exports.deleteTimeBlock = async (req, res, next) => {
     );
     res.json({ task });
   } catch (err) {
+    next(err);
+  }
+};
+
+// PUT /api/tasks/reorder
+exports.reorderTasks = async (req, res, next) => {
+  try {
+    const { orders } = req.body;
+    if (!orders || !Array.isArray(orders)) {
+      return res.status(400).json({ message: "Invalid orders data" });
+    }
+
+    const bulkOps = orders.map((item) => ({
+      updateOne: {
+        filter: { _id: item.id, owner: req.user._id },
+        update: { order: item.order },
+      },
+    }));
+
+    await Task.bulkWrite(bulkOps);
+    res.json({ message: "Reordered" });
+  } catch (err) {
+    console.error("[REORDER ERROR]", err);
     next(err);
   }
 };

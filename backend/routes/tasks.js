@@ -5,6 +5,7 @@ const ctrl = require("../controllers/taskController");
 router.use(protect);
 
 // Task CRUD
+router.put("/reorder", ctrl.reorderTasks);
 router.get("/", ctrl.getTasks);
 router.post("/", ctrl.createTask);
 router.post("/sync-guest", ctrl.syncGuestTasks);

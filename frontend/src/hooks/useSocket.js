@@ -10,8 +10,17 @@ export const useSocket = (enabled = true) => {
   useEffect(() => {
     if (!enabled) return;
 
-    const socketUrl = import.meta.env.VITE_API_URL || "/";
-    socket = io(socketUrl, { transports: ["websocket", "polling"] });
+    // Direct connect to backend port is often more reliable for WS than Vite proxy in some envs
+    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    socket = io(socketUrl, { 
+      transports: ["websocket", "polling"],
+      withCredentials: true
+    });
+
+    const user = JSON.parse(localStorage.getItem('tf_user') || '{}');
+    if (user?._id) {
+       socket.emit('join-room', user._id);
+    }
 
     socket.on("task-created", ({ task }) => handleSocketUpdate(task));
     socket.on("task-updated", ({ task }) => handleSocketUpdate(task));

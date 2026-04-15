@@ -1,21 +1,27 @@
-import { useState } from 'react';
-import { User, Mail, Lock, Users, Search, UserPlus, Check, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { User, Mail, Lock, Users, Search, UserPlus, Check, X, Settings } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import api from '../api/client';
 import toast from 'react-hot-toast';
-import Loader from '../components/ui/Loader';
 
-export default function ProfilePage() {
+/**
+ * SettingsPage (formerly ProfilePage)
+ * Central hub for identity management, security protocols, and collaborator network.
+ */
+export default function SettingsPage() {
   const { user, updateProfile, setupMFA, verifyMFASetup, disableMFA } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
   const [loading, setLoading] = useState(false);
-  const [mfaSetupData, setMfaSetupData] = useState(null); // { qrCodeUrl, secret }
+  const [mfaSetupData, setMfaSetupData] = useState(null); 
   const [mfaCode, setMfaCode] = useState('');
   const [searchQ, setSearchQ] = useState('');
   const [foundUsers, setFoundUsers] = useState([]);
   const [friends, setFriends] = useState([]);
-  const [friendRequests, setFriendRequests] = useState([]);
   const [tab, setTab] = useState('profile');
+
+  useEffect(() => {
+    if (tab === 'friends') loadFriends();
+  }, [tab]);
 
   const handleProfileSave = async () => {
     setLoading(true);
@@ -50,17 +56,20 @@ export default function ProfilePage() {
 
   const searchUsers = async () => {
     if (!searchQ) return;
+    setLoading(true);
     try {
       const { data } = await api.get(`/users/search?q=${searchQ}`);
       setFoundUsers(data.users);
     } catch { setFoundUsers([]); }
+    setLoading(false);
   };
 
-  const sendRequest = async (userId) => {
+  const addCollaborator = async (userId) => {
     try {
       await api.post(`/users/friend-request/${userId}`);
-      toast.success('Friend request sent!');
+      toast.success('Added to your workspace!');
       setFoundUsers(f => f.filter(u => u._id !== userId));
+      loadFriends();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
     }
@@ -70,15 +79,6 @@ export default function ProfilePage() {
     try {
       const { data } = await api.get('/users/friends');
       setFriends(data.friends);
-      setFriendRequests(data.friendRequests.filter(r => r.status === 'pending'));
-    } catch { }
-  };
-
-  const respondRequest = async (requestId, action) => {
-    try {
-      await api.put(`/users/friend-request/${requestId}/respond`, { action });
-      toast.success(action === 'accept' ? 'Friend added!' : 'Request declined');
-      loadFriends();
     } catch { }
   };
 
@@ -99,7 +99,7 @@ export default function ProfilePage() {
         {tabs.map(t => (
           <button
             key={t.key}
-            onClick={() => { setTab(t.key); if (t.key === 'friends') loadFriends(); }}
+            onClick={() => setTab(t.key)}
             className={`px-6 py-4 text-xs font-bold uppercase tracking-widest transition-all relative whitespace-nowrap ${
               tab === t.key ? 'text-accent-primary' : 'text-text-muted hover:text-text-primary'
             }`}
@@ -241,44 +241,9 @@ export default function ProfilePage() {
         )}
 
         {tab === 'friends' && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Friend requests */}
-            {friendRequests.length > 0 && (
-              <div className="card md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <h3 className="font-display font-black text-xl text-text-primary tracking-tight">Pending Syncs</h3>
-                  <span className="px-2 py-0.5 bg-accent-primary text-white text-[10px] font-black rounded-lg">{friendRequests.length}</span>
-                </div>
-                <div className="space-y-3">
-                  {friendRequests.map(req => (
-                    <div key={req._id} className="flex items-center gap-4 p-4 bg-surface-1/40 rounded-2xl border border-border-subtle/50 group">
-                      <div className="w-12 h-12 rounded-xl bg-accent-primary/10 border border-accent-primary/20 flex items-center justify-center text-accent-primary font-black text-lg">
-                        {req.from?.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-text-primary uppercase tracking-tight truncate">{req.from?.name}</p>
-                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{req.from?.email}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => respondRequest(req._id, 'accept')} className="p-2.5 rounded-xl bg-success/10 text-success hover:bg-success hover:text-white transition-all shadow-sm">
-                          <Check size={18} strokeWidth={3} />
-                        </button>
-                        <button onClick={() => respondRequest(req._id, 'reject')} className="p-2.5 rounded-xl bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all shadow-sm">
-                          <X size={18} strokeWidth={3} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Search */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
               <div className="card md:p-8 flex flex-col">
-                <h3 className="font-display font-black text-xl text-text-primary tracking-tight mb-6 flex items-center gap-3">
-                   Discover
-                </h3>
+                <h3 className="font-display font-black text-xl text-text-primary tracking-tight mb-6">Discover</h3>
                 <div className="flex gap-3 mb-6">
                   <div className="relative flex-1 group">
                     <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
@@ -296,6 +261,7 @@ export default function ProfilePage() {
                   </button>
                 </div>
                 <div className="flex-1 space-y-3 max-h-[400px] overflow-y-auto no-scrollbar">
+                  {loading && <div className="p-8 text-center animate-pulse"><div className="w-6 h-6 border-2 border-accent-primary border-t-transparent rounded-full animate-spin mx-auto mr-2"/>Searching...</div>}
                   {foundUsers.length === 0 && searchQ && !loading && (
                     <div className="text-center py-10 opacity-30">
                        <p className="text-[10px] font-black uppercase tracking-widest">No users found</p>
@@ -311,7 +277,7 @@ export default function ProfilePage() {
                         <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest truncate">{u.email}</p>
                       </div>
                       <button
-                        onClick={() => sendRequest(u._id)}
+                        onClick={() => addCollaborator(u._id)}
                         className="p-2.5 rounded-xl bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all"
                       >
                         <UserPlus size={18} strokeWidth={3} />
@@ -321,7 +287,6 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Friends list */}
               <div className="card md:p-8 flex flex-col">
                 <div className="flex items-center justify-between mb-6">
                    <h3 className="font-display font-black text-xl text-text-primary tracking-tight">Network</h3>
@@ -349,11 +314,9 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-            </div>
           </div>
         )}
       </div>
     </div>
   );
 }
-

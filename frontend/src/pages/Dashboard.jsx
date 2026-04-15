@@ -193,11 +193,20 @@ export default function Dashboard() {
                     <div className="flex flex-col items-end gap-2">
                        <span className={`tag ${STATUS_COLORS[task.status]}`}>{task.status.replace('-', ' ')}</span>
                        <div className="flex -space-x-2">
-                          {[...Array(3)].map((_, i) => (
-                             <div key={i} className="w-6 h-6 rounded-lg border-2 border-bg-secondary bg-surface-2 flex items-center justify-center text-[8px] font-black text-text-muted">
-                                {i + 1}
+                          {(task.assignedTo || []).slice(0, 3).map((u, i) => (
+                             <div 
+                               key={u._id || i} 
+                               className="w-6 h-6 rounded-lg border-2 border-bg-secondary bg-surface-2 flex items-center justify-center text-[8px] font-black text-accent-primary"
+                               title={u.name}
+                             >
+                                {(u.name?.[0] || 'U').toUpperCase()}
                              </div>
                           ))}
+                          {task.assignedTo?.length > 3 && (
+                            <div className="w-6 h-6 rounded-lg border-2 border-bg-secondary bg-surface-2 flex items-center justify-center text-[8px] font-black text-text-muted">
+                               +{task.assignedTo.length - 3}
+                            </div>
+                          )}
                        </div>
                     </div>
                   </Link>

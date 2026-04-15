@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Trash2, Clock, Tag, Flag, Calendar, Users } from 'lucide-react';
+import { X, Plus, Trash2, Clock, Tag, Flag, Calendar, Users, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import useTaskStore from '../../store/taskStore';
 import useAuthStore from '../../store/authStore';

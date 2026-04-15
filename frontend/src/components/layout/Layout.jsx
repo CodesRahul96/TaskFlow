@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import BottomNav from './BottomNav';
+import NotificationCenter from '../ui/NotificationCenter';
 import { useTheme } from '../../context/ThemeProvider';
 
 const navItems = [
@@ -14,7 +15,7 @@ const navItems = [
   { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { to: '/calendar', icon: Calendar, label: 'Schedule' },
   { to: '/audit', icon: FileText, label: 'Audit Log', authOnly: true },
-  { to: '/profile', icon: Settings, label: 'Settings', authOnly: true },
+  { to: '/settings', icon: Settings, label: 'Settings', authOnly: true },
 ];
 
 export default function Layout() {
@@ -79,7 +80,7 @@ export default function Layout() {
                 TaskFlow
               </span>
               <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mt-1">
-                Workspace v2
+                Workspace
               </span>
             </div>
           )}
@@ -186,14 +187,15 @@ export default function Layout() {
              >
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
              </button>
-             <div className="h-8 w-px bg-border-subtle mx-2" />
-             <button className="relative p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-2 rounded-xl transition-all group">
-                <Bell size={18} />
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-accent-primary rounded-full border-2 border-bg-primary" />
-             </button>
+             {!isGuest && (
+               <>
+                 <div className="h-8 w-px bg-border-subtle mx-2" />
+                 <NotificationCenter />
+               </>
+             )}
              <div className="h-8 w-px bg-border-subtle mx-2" />
              <button
-               onClick={() => navigate('/profile')}
+               onClick={() => navigate('/settings')}
                className="w-10 h-10 rounded-2xl bg-surface-1 border border-border-default hover:border-accent-primary/50 transition-all flex items-center justify-center overflow-hidden active:scale-95"
              >
                 <div className="text-[10px] font-black text-text-muted">{initials}</div>
@@ -208,7 +210,7 @@ export default function Layout() {
              <span className="font-display font-black text-lg text-text-primary tracking-tight">TaskFlow</span>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-text-muted p-2"><Bell size={18} /></button>
+            {!isGuest && <NotificationCenter />}
             <div className="w-8 h-8 rounded-xl bg-surface-1 border border-border-default flex items-center justify-center text-[10px] font-black text-text-muted">
               {initials}
             </div>
@@ -226,6 +228,18 @@ export default function Layout() {
         </main>
 
         {/* Mobile Navigation */}
+        {/* Desktop Footer Signature */}
+        <footer className="hidden md:flex items-center justify-between px-10 py-3 bg-bg-primary/30 border-t border-border-subtle/20 z-10">
+           <div className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] opacity-40">
+              Build v2.4.1-Stable
+           </div>
+           <div className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
+              <span>Hand-engineered with</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-pulse" />
+              <span>by Sri Vaishnavi</span>
+           </div>
+        </footer>
+
         <BottomNav />
       </div>
     </div>

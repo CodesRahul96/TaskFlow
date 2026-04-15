@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const logAudit = require("../utils/audit");
 
 /**
  * User Directory Controller
@@ -53,7 +54,16 @@ exports.sendFriendRequest = async (req, res, next) => {
     await User.findByIdAndUpdate(req.params.userId, {
       $addToSet: { friends: req.user._id },
     });
-    res.json({ message: "Friend added" });
+    
+    await logAudit(
+      req.user._id,
+      req.user.name,
+      "friend_added",
+      null,
+      { target: targetUser.name }
+    );
+
+    res.json({ message: "Collaborator added to your directory" });
   } catch (err) { next(err); }
 };
 

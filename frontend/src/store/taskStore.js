@@ -26,7 +26,7 @@ const useTaskStore = create((set, get) => ({
     priority: '',
     tag: '',
     search: '',
-    sort: '-createdAt',
+    sort: 'order',
   },
 
   setFilters: (filters) => set(state => ({ filters: { ...state.filters, ...filters } })),
@@ -107,6 +107,22 @@ const useTaskStore = create((set, get) => ({
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update task');
       return { success: false };
+    }
+  },
+
+  reorderTasks: async (orders, isGuest = false) => {
+    if (isGuest) {
+      const tasks = get().tasks;
+      const sorted = orders.map(o => tasks.find(t => t._id === o.id)).filter(Boolean);
+      saveGuestTasks(sorted);
+      set({ tasks: sorted });
+      return;
+    }
+    try {
+      await api.put('/tasks/reorder', { orders });
+    } catch (err) {
+      toast.error('Sync failed');
+      get().fetchTasks(false);
     }
   },
 

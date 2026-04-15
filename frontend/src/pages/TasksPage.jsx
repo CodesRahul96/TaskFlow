@@ -85,6 +85,25 @@ const TaskCard = memo(({ task, onSelect, onEdit, onDelete, isSelected, index }) 
                {task.category}
             </span>
           )}
+          {/* Collaborators */}
+          {task.assignedTo?.length > 0 && (
+            <div className="flex -space-x-2 ml-1">
+              {task.assignedTo.slice(0, 3).map((u, i) => (
+                <div 
+                  key={u._id || u} 
+                  className="w-5 h-5 rounded-lg bg-surface-2 border border-border-subtle flex items-center justify-center text-[10px] font-black text-accent-primary shadow-sm"
+                  title={u.name || 'Collaborator'}
+                >
+                  {(u.name?.[0] || '?').toUpperCase()}
+                </div>
+              ))}
+              {task.assignedTo.length > 3 && (
+                <div className="w-5 h-5 rounded-lg bg-surface-2 border border-border-subtle flex items-center justify-center text-[9px] font-black text-text-muted">
+                  +{task.assignedTo.length - 3}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -146,6 +165,7 @@ export default function TasksPage() {
       if (!b.deadline) return -1;
       return new Date(a.deadline) - new Date(b.deadline);
     }
+    if (filters.sort === 'order') return (a.order || 0) - (b.order || 0);
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
@@ -157,9 +177,9 @@ export default function TasksPage() {
     const newIndex = localTasks.findIndex(t => t._id === over.id);
     const reordered = arrayMove(localTasks, oldIndex, newIndex);
     setLocalTasks(reordered);
-    reordered.forEach((t, i) => {
-      if (!isGuest) updateTask(t._id, { order: i }, false);
-    });
+    const orders = reordered.map((t, i) => ({ id: t._id, order: i }));
+    const { reorderTasks } = useTaskStore.getState();
+    reorderTasks(orders, isGuest);
   };
 
   const handleDelete = async (taskId) => {
@@ -253,13 +273,14 @@ export default function TasksPage() {
                 value={filters.sort}
                 onChange={e => setFilters({ sort: e.target.value })}
               >
+                <option value="order">Manual Order</option>
                 <option value="-createdAt">Newest First</option>
                 <option value="createdAt">Oldest First</option>
                 <option value="priority">By Priority</option>
                 <option value="deadline">By Deadline</option>
               </select>
               <button
-                onClick={() => setFilters({ status: '', priority: '', search: '', sort: '-createdAt' })}
+                onClick={() => setFilters({ status: '', priority: '', search: '', sort: 'order' })}
                 className="text-xs text-text-muted hover:text-text-primary transition-colors px-2"
               >
                 Clear

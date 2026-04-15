@@ -6,7 +6,7 @@ const mobileNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home', exact: true },
   { to: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { to: '/calendar', icon: Calendar, label: 'Plan' },
-  { to: '/profile', icon: User, label: 'Me' },
+  { to: '/settings', icon: User, label: 'Settings' },
 ];
 
 export default function BottomNav() {
