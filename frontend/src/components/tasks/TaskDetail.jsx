@@ -235,14 +235,18 @@ export default function TaskDetail({ task, onEdit, onClose }) {
     if (current.includes(collaborator._id)) return;
     
     const updatedAssignedTo = [...current, collaborator._id];
-    await updateTask(task._id, { assignedTo: updatedAssignedTo }, isGuest);
-    toast.success(`${collaborator.name} joined the mission`);
+    const res = await updateTask(task._id, { assignedTo: updatedAssignedTo }, isGuest);
+    if (res.success) {
+      toast.success(`${collaborator.name} joined the mission`);
+    }
   };
 
   const handleRemoveCollaborator = async (userId) => {
     const updatedAssignedTo = (task.assignedTo || []).filter(u => (u._id || u) !== userId).map(u => u._id || u);
-    await updateTask(task._id, { assignedTo: updatedAssignedTo }, isGuest);
-    toast.success('Collaborator removed');
+    const res = await updateTask(task._id, { assignedTo: updatedAssignedTo }, isGuest);
+    if (res.success) {
+      toast.success('Collaborator removed');
+    }
   };
 
   return (

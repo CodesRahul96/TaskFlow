@@ -3,32 +3,46 @@ import { io } from "socket.io-client";
 import useTaskStore from "../store/taskStore";
 
 let socket = null;
+let connectionCount = 0;
 
 export const useSocket = (enabled = true) => {
-  const { handleSocketUpdate, handleSocketDelete } = useTaskStore();
-
   useEffect(() => {
     if (!enabled) return;
 
-    // Direct connect to backend port is often more reliable for WS than Vite proxy in some envs
-    const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-    socket = io(socketUrl, { 
-      transports: ["websocket", "polling"],
-      withCredentials: true
-    });
+    if (!socket) {
+      const socketUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      socket = io(socketUrl, { 
+        transports: ["websocket", "polling"],
+        withCredentials: true
+      });
 
-    const user = JSON.parse(localStorage.getItem('tf_user') || '{}');
-    if (user?._id) {
-       socket.emit('join-room', user._id);
+      const user = JSON.parse(localStorage.getItem('tf_user') || '{}');
+      if (user?._id) {
+         socket.emit('join-room', user._id);
+      }
+
+      // Register core listeners only once for the singleton instance
+      socket.on("task-created", ({ task }) => useTaskStore.getState().handleSocketUpdate(task));
+      socket.on("task-updated", ({ task }) => useTaskStore.getState().handleSocketUpdate(task));
+      socket.on("task-deleted", ({ taskId }) => useTaskStore.getState().handleSocketDelete(taskId));
     }
 
-    socket.on("task-created", ({ task }) => handleSocketUpdate(task));
-    socket.on("task-updated", ({ task }) => handleSocketUpdate(task));
-    socket.on("task-deleted", ({ taskId }) => handleSocketDelete(taskId));
+    connectionCount++;
 
     return () => {
-      socket?.disconnect();
-      socket = null;
+      connectionCount--;
+      
+      // Cleanup: Only disconnect if this is the last component using the socket
+      // We use a small delay to handle React 18 Strict Mode double-mounting in dev
+      if (connectionCount <= 0 && socket) {
+         const currentSocket = socket;
+         setTimeout(() => {
+           if (connectionCount <= 0 && currentSocket) {
+             if (currentSocket.connected) currentSocket.disconnect();
+             if (socket === currentSocket) socket = null;
+           }
+         }, 100);
+      }
     };
   }, [enabled]);
 

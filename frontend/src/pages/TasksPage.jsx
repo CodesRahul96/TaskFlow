@@ -147,7 +147,13 @@ export default function TasksPage() {
   );
 
   useEffect(() => { fetchTasks(isGuest); }, [isGuest, filters]);
-  useEffect(() => { setLocalTasks(tasks); }, [tasks]);
+  useEffect(() => { 
+    // Filter for unique IDs to prevent duplicate key warnings if state updates map redundant items
+    const uniqueTasks = tasks.filter((task, index, self) => 
+      index === self.findIndex((t) => t._id.toString() === task._id.toString())
+    );
+    setLocalTasks(uniqueTasks); 
+  }, [tasks]);
 
   // Sync guest tasks if just logged in
   useEffect(() => {

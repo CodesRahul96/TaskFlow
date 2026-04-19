@@ -49,7 +49,7 @@ export default function CollaboratorPicker({ currentCollaborators = [], onAdd, o
             className="flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 bg-surface-2 border border-border-subtle rounded-xl group hover:border-accent-primary transition-all"
           >
             <div className="w-6 h-6 rounded-lg bg-accent-primary/10 flex items-center justify-center text-accent-primary text-[10px] font-black">
-              {user.name[0].toUpperCase()}
+              {user.name?.[0]?.toUpperCase() || '?'}
             </div>
             <span className="text-xs font-bold text-text-secondary">{user.name}</span>
             {isOwner && (

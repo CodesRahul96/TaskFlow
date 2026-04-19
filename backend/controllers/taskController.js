@@ -66,12 +66,16 @@ exports.getTasks = async (req, res, next) => {
 exports.createTask = async (req, res, next) => {
   try {
     const task = await Task.create({ ...req.body, owner: req.user._id });
-    await logAudit(req.user._id, req.user.name, "task_created", task._id, {
-      title: task.title,
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email");
+
+    await logAudit(req.user._id, req.user.name, "task_created", populatedTask._id, {
+      title: populatedTask.title,
     });
     const io = req.app.get("io");
-    io.to(req.user._id.toString()).emit("task-created", { task });
-    res.status(201).json({ task });
+    io.to(req.user._id.toString()).emit("task-created", { task: populatedTask });
+    res.status(201).json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -112,6 +116,8 @@ exports.updateTask = async (req, res, next) => {
       task.owner.equals(req.user._id) ||
       task.assignedTo.some((u) => u.equals(req.user._id));
     if (!canEdit) return res.status(403).json({ message: "Not authorised" });
+    const io = req.app.get("io");
+
 
     // Track status change
     const prevStatus = task.status;
@@ -152,6 +158,14 @@ exports.updateTask = async (req, res, next) => {
         io.to(uid).emit("notification-received", { notification: note });
       }
     }
+
+    // CRITICAL: Hydrate task with user metadata (names, emails) before dispatching to the client.
+    // This prevents frontend crashes in components that expect full user objects rather than IDs.
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email")
+      .populate("subtasks.completedBy", "name");
+
     const action =
       prevStatus !== task.status ? "task_status_changed" : "task_updated";
     await logAudit(req.user._id, req.user.name, action, task._id, {
@@ -159,16 +173,20 @@ exports.updateTask = async (req, res, next) => {
       title: task.title,
     });
 
-    const io = req.app.get("io");
     const allRelevantUsers = new Set([
       ...newAssigned,
       ...prevAssigned,
       task.owner.toString(),
     ]);
-    allRelevantUsers.forEach((uid) =>
-      io.to(uid).emit("task-updated", { task }),
-    );
-    res.json({ task });
+
+    allRelevantUsers.forEach((uid) => {
+      // Opt-out strategy for the initiator to avoid redundant local state churn
+      // and mitigate race conditions between REST response and WebSocket broadcast.
+      if (uid === req.user._id.toString()) return;
+      io.to(uid).emit("task-updated", { task: populatedTask });
+    });
+
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -237,10 +255,15 @@ exports.addSubtask = async (req, res, next) => {
     if (!task) return res.status(404).json({ message: "Task not found" });
     task.subtasks.push({ title: req.body.title, order: task.subtasks.length });
     await task.save();
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email")
+      .populate("subtasks.completedBy", "name");
+
     await logAudit(req.user._id, req.user.name, "subtask_created", task._id, {
       title: req.body.title,
     });
-    res.json({ task });
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -269,7 +292,12 @@ exports.updateSubtask = async (req, res, next) => {
       );
     }
     await task.save();
-    res.json({ task });
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email")
+      .populate("subtasks.completedBy", "name");
+
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -284,10 +312,15 @@ exports.deleteSubtask = async (req, res, next) => {
     if (!sub) return res.status(404).json({ message: "Subtask not found" });
     sub.deleteOne();
     await task.save();
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email")
+      .populate("subtasks.completedBy", "name");
+
     await logAudit(req.user._id, req.user.name, "subtask_deleted", task._id, {
       title: sub.title,
     });
-    res.json({ task });
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -356,11 +389,15 @@ exports.addTimeBlock = async (req, res, next) => {
 
     task.timeBlocks.push(req.body);
     await task.save();
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email");
+
     await logAudit(req.user._id, req.user.name, "timeblock_added", task._id, {
       startTime,
       endTime,
     });
-    res.json({ task });
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -399,6 +436,10 @@ exports.updateTimeBlock = async (req, res, next) => {
 
     Object.assign(block, req.body);
     await task.save();
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email");
+
     await logAudit(
       req.user._id,
       req.user.name,
@@ -406,7 +447,7 @@ exports.updateTimeBlock = async (req, res, next) => {
       task._id,
       {},
     );
-    res.json({ task });
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
@@ -422,6 +463,10 @@ exports.deleteTimeBlock = async (req, res, next) => {
       return res.status(404).json({ message: "Time block not found" });
     block.deleteOne();
     await task.save();
+    const populatedTask = await Task.findById(task._id)
+      .populate("owner", "name email")
+      .populate("assignedTo", "name email");
+
     await logAudit(
       req.user._id,
       req.user.name,
@@ -429,7 +474,7 @@ exports.deleteTimeBlock = async (req, res, next) => {
       task._id,
       {},
     );
-    res.json({ task });
+    res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }

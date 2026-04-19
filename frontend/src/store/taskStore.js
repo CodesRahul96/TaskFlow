@@ -311,12 +311,24 @@ const useTaskStore = create((set, get) => ({
 
   // ---- SOCKET UPDATE ----
   handleSocketUpdate: (task) => {
-    set(state => ({
-      tasks: state.tasks.some(t => t._id === task._id)
-        ? state.tasks.map(t => t._id === task._id ? task : t)
-        : [task, ...state.tasks],
-      selectedTask: state.selectedTask?._id === task._id ? task : state.selectedTask,
-    }));
+    // Robust ID comparison to mitigate potential serialization mismatches (ObjectId vs String)
+    const taskId = task._id.toString();
+    set(state => {
+      // Conflict Resolution: Only update list if task already exists, 
+      // preventing accidental duplicates from race conditions between API and Sockets.
+      const exists = state.tasks.some(t => t._id.toString() === taskId);
+      if (exists) {
+        return {
+          tasks: state.tasks.map(t => t._id.toString() === taskId ? task : t),
+          selectedTask: state.selectedTask?._id?.toString() === taskId ? task : state.selectedTask,
+        };
+      }
+      // Non-existent task: append to list (e.g. task assigned to current user by someone else)
+      return {
+        tasks: [task, ...state.tasks],
+        selectedTask: state.selectedTask?._id?.toString() === taskId ? task : state.selectedTask,
+      };
+    });
   },
 
   handleSocketDelete: (taskId) => {
