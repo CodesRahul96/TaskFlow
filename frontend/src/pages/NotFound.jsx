@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom';
+import { Compass, Home } from 'lucide-react';
+
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col items-center justify-center p-6 text-center animate-fade-in relative overflow-hidden">

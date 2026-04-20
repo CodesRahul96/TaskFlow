@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Trash2, Clock, Tag, Flag, Calendar, Users, Search } from 'lucide-react';
+import { X, Plus, Trash2, Clock, Tag, Flag, Calendar, Users, Search, Share2, Copy, ShieldCheck } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import useTaskStore from '../../store/taskStore';
 import useAuthStore from '../../store/authStore';
@@ -10,11 +11,11 @@ import Loader from '../ui/Loader';
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const STATUSES = ['todo', 'in-progress', 'completed', 'cancelled'];
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'];
-
 export default function TaskModal({ task, onClose }) {
   const isEditing = !!task;
-  const { createTask, updateTask } = useTaskStore();
-  const { isGuest, token } = useAuthStore();
+  const { createTask, updateTask, toggleSharing } = useTaskStore();
+  const { isGuest, user } = useAuthStore();
+  const isOwner = task?.owner === user?._id || task?.owner?._id === user?._id;
 
   const [form, setForm] = useState({
     title: task?.title || '',
@@ -31,6 +32,32 @@ export default function TaskModal({ task, onClose }) {
   const [foundUsers, setFoundUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+  const [sharing, setSharing] = useState({
+    enabled: task?.isSharingEnabled || false,
+    token: task?.shareToken || '',
+  });
+
+  const getShareUrl = () => {
+    const base = window.location.origin;
+    return `${base}/share/${sharing.token}`;
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(getShareUrl());
+    toast.success('Share link copied to clipboard!');
+  };
+
+  const handleShareToggle = async () => {
+    if (!isEditing || !isOwner) return;
+    try {
+       const result = await toggleSharing(task._id, !sharing.enabled);
+       if (result.success) {
+          setSharing({ enabled: result.isSharingEnabled, token: result.shareToken });
+       }
+    } catch (err) {
+       toast.error('Failed to update sharing settings');
+    }
+  };
 
   const handleChange = (field, value) => setForm(f => ({ ...f, [field]: value }));
 
@@ -95,7 +122,7 @@ export default function TaskModal({ task, onClose }) {
 
         {/* Tabs */}
         <div className="flex px-4 border-b border-border-subtle bg-surface-1/5">
-          {['details', 'assign'].map(tab => (
+          {['details', 'assign', (isEditing && isOwner && 'share')].filter(Boolean).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -305,6 +332,55 @@ export default function TaskModal({ task, onClose }) {
                     <p className="text-xs font-bold uppercase tracking-widest">Sign in to collaborate</p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'share' && isEditing && isOwner && (
+              <div className="animate-fade-in space-y-8 py-4 px-2">
+                 <div className="flex items-center justify-between p-6 rounded-3xl bg-surface-2/40 border border-border-subtle">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-accent-primary/10 w-12 h-12 rounded-2xl flex items-center justify-center text-accent-primary shadow-sm border border-accent-primary/20">
+                          <Share2 size={24} />
+                       </div>
+                       <div>
+                          <h3 className="font-bold text-sm text-text-primary uppercase tracking-tight">Enable Public Sharing</h3>
+                          <p className="text-[10px] font-medium text-text-muted uppercase tracking-widest">Share this task with anyone via a secure link</p>
+                       </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={sharing.enabled} 
+                        onChange={handleShareToggle}
+                      />
+                      <div className="w-11 h-6 bg-surface-3 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary"></div>
+                    </label>
+                 </div>
+
+                 {sharing.enabled && sharing.token && (
+                    <div className="space-y-4 animate-slide-up">
+                        <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-3">Your Secure Share Link</label>
+                        <div className="flex gap-2">
+                           <div className="flex-1 bg-surface-2 border border-border-subtle rounded-2xl p-4 text-xs font-mono text-accent-primary truncate">
+                              {getShareUrl()}
+                           </div>
+                           <button 
+                             type="button"
+                             onClick={copyToClipboard}
+                             className="w-14 h-14 bg-accent-primary hover:bg-accent-dark text-white rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-95"
+                           >
+                              <Copy size={20} />
+                           </button>
+                        </div>
+                        <div className="p-5 rounded-3xl bg-accent-primary/5 border border-accent-primary/10 flex gap-4">
+                           <ShieldCheck size={20} className="text-accent-primary shrink-0" />
+                           <p className="text-[11px] text-text-secondary leading-relaxed font-medium">
+                              Guests with this link can view the task title, description, and status. They must register to join the project as active collaborators.
+                           </p>
+                        </div>
+                    </div>
+                 )}
               </div>
             )}
           </div>

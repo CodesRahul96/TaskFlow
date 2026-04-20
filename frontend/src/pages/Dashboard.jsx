@@ -167,7 +167,7 @@ export default function Dashboard() {
                 const dl = getDeadlineLabel(task.deadline);
                 return (
                   <Link
-                    key={task._id}
+                    key={`dashboard-task-${task._id.toString()}`}
                     to="/tasks"
                     className={`card card-hover flex items-center gap-6 group relative overflow-hidden stagger-${idx + 1}`}
                   >

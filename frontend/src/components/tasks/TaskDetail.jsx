@@ -164,11 +164,10 @@ export default function TaskDetail({ task, onEdit, onClose }) {
     socket.joinTask(task._id);
 
     const handleNewComment = ({ comment }) => {
-      // Only add if it belongs to this task (sanity check)
       if (comment.task === task._id) {
         setComments(prev => {
-          // Prevent duplicates
-          if (prev.some(c => c._id === comment._id)) return prev;
+          const isDuplicate = prev.some(c => c._id.toString() === comment._id.toString());
+          if (isDuplicate) return prev;
           return [...prev, comment];
         });
       }
@@ -202,7 +201,11 @@ export default function TaskDetail({ task, onEdit, onClose }) {
     if (!newComment.trim()) return;
     try {
       const { data } = await api.post(`/comments/${task._id}`, { content: newComment });
-      setComments(c => [...c, data.comment]);
+      setComments(prev => {
+        const isDuplicate = prev.some(c => c._id.toString() === data.comment._id.toString());
+        if (isDuplicate) return prev;
+        return [...prev, data.comment];
+      });
       setNewComment('');
     } catch {
       toast.error('Failed to post comment');
@@ -301,8 +304,8 @@ export default function TaskDetail({ task, onEdit, onClose }) {
       {/* Tags */}
       {task.tags?.length > 0 && (
         <div className="px-6 py-4 flex gap-2 flex-wrap bg-surface-1/5">
-          {task.tags.map(tag => (
-            <span key={tag} className="px-2.5 py-1 bg-surface-2 text-text-secondary rounded-lg text-[10px] font-bold uppercase tracking-wider border border-border-subtle">
+          {task.tags.map((tag, i) => (
+            <span key={`task-tag-${task._id}-${tag}-${i}`} className="px-2.5 py-1 bg-surface-2 text-text-secondary rounded-lg text-[10px] font-bold uppercase tracking-wider border border-border-subtle">
               #{tag}
             </span>
           ))}
@@ -359,7 +362,7 @@ export default function TaskDetail({ task, onEdit, onClose }) {
               {(task.subtasks || [])
                 .sort((a, b) => a.order - b.order)
                 .map(subtask => (
-                  <SubtaskItem key={subtask._id} subtask={subtask} taskId={task._id} isGuest={isGuest} />
+                  <SubtaskItem key={`sub-item-${subtask._id}`} subtask={subtask} taskId={task._id} isGuest={isGuest} />
                 ))}
             </div>
 
@@ -396,7 +399,7 @@ export default function TaskDetail({ task, onEdit, onClose }) {
                 (task.timeBlocks || [])
                   .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
                   .map(block => (
-                    <TimeBlockItem key={block._id} block={block} taskId={task._id} isGuest={isGuest} />
+                    <TimeBlockItem key={`block-item-${block._id}`} block={block} taskId={task._id} isGuest={isGuest} />
                   ))
               )}
             </div>
@@ -440,7 +443,7 @@ export default function TaskDetail({ task, onEdit, onClose }) {
                 </div>
               ) : (
                 comments.map(c => (
-                  <div key={c._id} className="flex gap-4 group">
+                  <div key={`comment-item-${c._id}`} className="flex gap-4 group">
                     <div className="w-9 h-9 rounded-xl bg-surface-2 border border-border-subtle flex items-center justify-center text-accent-primary font-black text-xs flex-shrink-0">
                       {c.author?.name?.[0]?.toUpperCase() || '?'}
                     </div>
@@ -483,7 +486,7 @@ export default function TaskDetail({ task, onEdit, onClose }) {
             ) : (
               <div className="relative space-y-6 before:absolute before:inset-y-0 before:left-[17px] before:w-px before:bg-border-subtle">
                 {auditLogs.map(log => (
-                  <div key={log._id} className="flex items-start gap-4 relative">
+                  <div key={`audit-item-${log._id}`} className="flex items-start gap-4 relative">
                     <div className="w-9 h-9 rounded-full bg-surface-1 border border-border-subtle flex items-center justify-center flex-shrink-0 z-10 shadow-sm">
                       <Activity size={12} className="text-accent-primary" />
                     </div>

@@ -17,6 +17,17 @@ const saveGuestTasks = (tasks) => {
 
 const generateGuestId = () => `guest_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
+// HELPER: Ensures no duplicate IDs exist in the task array (prevents React key warnings)
+const deduplicateTasks = (tasks) => {
+  const seen = new Set();
+  return tasks.filter(task => {
+    const id = (task._id || task).toString();
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+};
+
 const useTaskStore = create((set, get) => ({
   tasks: [],
   loading: false,
@@ -49,7 +60,7 @@ const useTaskStore = create((set, get) => ({
       if (filters.sort) params.append('sort', filters.sort);
 
       const { data } = await api.get(`/tasks?${params}`);
-      set({ tasks: data.tasks, loading: false });
+      set({ tasks: deduplicateTasks(data.tasks), loading: false });
     } catch (err) {
       set({ loading: false });
       toast.error('Failed to fetch tasks');
@@ -78,7 +89,9 @@ const useTaskStore = create((set, get) => ({
     }
     try {
       const { data } = await api.post('/tasks', taskData);
-      set(state => ({ tasks: [data.task, ...state.tasks] }));
+      set(state => ({ 
+        tasks: deduplicateTasks([data.task, ...state.tasks]) 
+      }));
       toast.success('Task created!');
       return { success: true, task: data.task };
     } catch (err) {
@@ -100,8 +113,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.put(`/tasks/${taskId}`, updates);
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       return { success: true, task: data.task };
     } catch (err) {
@@ -113,7 +126,7 @@ const useTaskStore = create((set, get) => ({
   reorderTasks: async (orders, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks;
-      const sorted = orders.map(o => tasks.find(t => t._id === o.id)).filter(Boolean);
+      const sorted = orders.map(o => tasks.find(t => t._id.toString() === o.id.toString())).filter(Boolean);
       saveGuestTasks(sorted);
       set({ tasks: sorted });
       return;
@@ -129,7 +142,7 @@ const useTaskStore = create((set, get) => ({
   // ---- DELETE ----
   deleteTask: async (taskId, isGuest = false) => {
     if (isGuest) {
-      const tasks = get().tasks.filter(t => t._id !== taskId);
+      const tasks = get().tasks.filter(t => t._id.toString() !== taskId.toString());
       saveGuestTasks(tasks);
       set({ tasks });
       toast.success('Task deleted');
@@ -138,8 +151,8 @@ const useTaskStore = create((set, get) => ({
     try {
       await api.delete(`/tasks/${taskId}`);
       set(state => ({
-        tasks: state.tasks.filter(t => t._id !== taskId),
-        selectedTask: state.selectedTask?._id === taskId ? null : state.selectedTask,
+        tasks: state.tasks.filter(t => t._id.toString() !== taskId.toString()),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? null : state.selectedTask
       }));
       toast.success('Task deleted');
       return { success: true };
@@ -153,7 +166,7 @@ const useTaskStore = create((set, get) => ({
   addSubtask: async (taskId, title, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.map(t => {
-        if (t._id !== taskId) return t;
+        if (t._id.toString() !== taskId.toString()) return t;
         const subtask = { _id: generateGuestId(), title, completed: false, order: t.subtasks.length };
         return { ...t, subtasks: [...(t.subtasks || []), subtask] };
       });
@@ -164,8 +177,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.post(`/tasks/${taskId}/subtasks`, { title });
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       return { success: true };
     } catch (err) {
@@ -188,8 +201,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.put(`/tasks/${taskId}/subtasks/${subtaskId}`, updates);
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       return { success: true };
     } catch (err) {
@@ -211,8 +224,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.delete(`/tasks/${taskId}/subtasks/${subtaskId}`);
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       return { success: true };
     } catch (err) {
@@ -237,8 +250,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.post(`/tasks/${taskId}/timeblocks`, blockData);
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       toast.success('Time block added');
       return { success: true };
@@ -262,8 +275,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.put(`/tasks/${taskId}/timeblocks/${blockId}`, updates);
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       return { success: true };
     } catch (err) {
@@ -285,8 +298,8 @@ const useTaskStore = create((set, get) => ({
     try {
       const { data } = await api.delete(`/tasks/${taskId}/timeblocks/${blockId}`);
       set(state => ({
-        tasks: state.tasks.map(t => t._id === taskId ? data.task : t),
-        selectedTask: state.selectedTask?._id === taskId ? data.task : state.selectedTask,
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
       return { success: true };
     } catch (err) {
@@ -303,7 +316,9 @@ const useTaskStore = create((set, get) => ({
       const { data } = await api.post('/tasks/sync-guest', { guestTasks });
       localStorage.removeItem(GUEST_KEY);
       toast.success(`Synced ${data.syncedCount} tasks from guest session`);
-      get().fetchTasks(false);
+      set(state => ({
+        tasks: deduplicateTasks([...data.tasks, ...state.tasks])
+      }));
     } catch (err) {
       toast.error('Failed to sync guest tasks');
     }
@@ -311,34 +326,62 @@ const useTaskStore = create((set, get) => ({
 
   // ---- SOCKET UPDATE ----
   handleSocketUpdate: (task) => {
-    // Robust ID comparison to mitigate potential serialization mismatches (ObjectId vs String)
     const taskId = task._id.toString();
     set(state => {
-      // Conflict Resolution: Only update list if task already exists, 
-      // preventing accidental duplicates from race conditions between API and Sockets.
-      const exists = state.tasks.some(t => t._id.toString() === taskId);
-      if (exists) {
-        return {
-          tasks: state.tasks.map(t => t._id.toString() === taskId ? task : t),
-          selectedTask: state.selectedTask?._id?.toString() === taskId ? task : state.selectedTask,
-        };
-      }
-      // Non-existent task: append to list (e.g. task assigned to current user by someone else)
+      // Robust Duplicate Prevention using helper
+      const isSelected = state.selectedTask?._id?.toString() === taskId;
+      
       return {
-        tasks: [task, ...state.tasks],
-        selectedTask: state.selectedTask?._id?.toString() === taskId ? task : state.selectedTask,
+        tasks: deduplicateTasks([task, ...state.tasks]),
+        selectedTask: isSelected ? task : state.selectedTask,
       };
     });
   },
 
   handleSocketDelete: (taskId) => {
+    const idStr = taskId.toString();
     set(state => ({
-      tasks: state.tasks.filter(t => t._id !== taskId),
-      selectedTask: state.selectedTask?._id === taskId ? null : state.selectedTask,
+      tasks: state.tasks.filter(t => t._id.toString() !== idStr),
+      selectedTask: state.selectedTask?._id?.toString() === idStr ? null : state.selectedTask,
     }));
   },
 
   setSelectedTask: (task) => set({ selectedTask: task }),
+
+  // ---- SHARING ----
+  toggleSharing: async (taskId, enabled) => {
+    try {
+      const { data } = await api.put(`/tasks/${taskId}/share`, { enabled });
+      set(state => ({
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? { ...t, isSharingEnabled: data.isSharingEnabled, shareToken: data.shareToken } : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? { ...state.selectedTask, isSharingEnabled: data.isSharingEnabled, shareToken: data.shareToken } : state.selectedTask
+      }));
+      toast.success(data.message);
+      return { success: true, isSharingEnabled: data.isSharingEnabled, shareToken: data.shareToken };
+    } catch (err) {
+      toast.error('Failed to update sharing');
+      return { success: false };
+    }
+  },
+
+  joinTaskByToken: async (token) => {
+    try {
+      const { data } = await api.post(`/tasks/join/${token}`);
+      set(state => ({
+        tasks: deduplicateTasks([data.task, ...state.tasks])
+      }));
+      toast.success(data.message);
+      localStorage.removeItem('tf_pending_invite');
+      return { success: true };
+    } catch (err) {
+      // Don't toast error if it's already joined (200 status handled in controller)
+      if (err.response?.status !== 200) {
+        toast.error(err.response?.data?.message || 'Failed to join task');
+      }
+      localStorage.removeItem('tf_pending_invite');
+      return { success: false };
+    }
+  },
 }));
 
 export default useTaskStore;

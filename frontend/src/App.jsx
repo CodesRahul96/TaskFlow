@@ -3,6 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import { lazy, Suspense, useEffect } from "react";
 import useAuthStore from "./store/authStore";
+import useTaskStore from "./store/taskStore";
 import Layout from "./components/layout/Layout";
 import { useSocket } from "./hooks/useSocket";
 
@@ -18,6 +19,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const OfflinePage = lazy(() => import("./pages/OfflinePage"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const VerifyLogin = lazy(() => import("./pages/VerifyLogin"));
+const SharePage = lazy(() => import("./pages/SharePage"));
 
 // Professional Loading Fallback
 function PageLoader() {
@@ -31,7 +33,17 @@ function PageLoader() {
 
 function AppRoutes() {
   const { token, isGuest, isOnline, setOnline } = useAuthStore();
+  const { joinTaskByToken } = useTaskStore();
   useSocket(!!token);
+
+  useEffect(() => {
+    if (token && !isGuest) {
+      const pendingInvite = localStorage.getItem('tf_pending_invite');
+      if (pendingInvite) {
+        joinTaskByToken(pendingInvite);
+      }
+    }
+  }, [token, isGuest, joinTaskByToken]);
 
   useEffect(() => {
     const handleOnline = () => setOnline(true);
@@ -63,6 +75,7 @@ function AppRoutes() {
         <Route path="/register" element={!isAuth ? <Register /> : <Navigate to="/" replace />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/verify-login" element={<VerifyLogin />} />
+        <Route path="/share/:token" element={<SharePage />} />
         <Route
           path="/"
           element={isAuth || isGuest ? <Layout /> : <Navigate to="/login" replace />}
@@ -73,6 +86,7 @@ function AppRoutes() {
           <Route path="audit"    element={isAuth ? <AuditPage />   : <Navigate to="/login" />} />
           <Route path="settings" element={isAuth ? <SettingsPage /> : <Navigate to="/login" />} />
         </Route>
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

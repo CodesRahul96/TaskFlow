@@ -23,7 +23,8 @@ const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_DOT = { urgent: 'bg-danger', high: 'bg-warning', medium: 'bg-accent-primary', low: 'bg-success' };
 
 const TaskCard = memo(({ task, onSelect, onEdit, onDelete, isSelected, index }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
+  const taskId = (task._id || task).toString();
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: taskId });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   const completedSubs = (task.subtasks || []).filter(s => s.completed).length;
@@ -88,15 +89,18 @@ const TaskCard = memo(({ task, onSelect, onEdit, onDelete, isSelected, index }) 
           {/* Collaborators */}
           {task.assignedTo?.length > 0 && (
             <div className="flex -space-x-2 ml-1">
-              {task.assignedTo.slice(0, 3).map((u, i) => (
-                <div 
-                  key={u._id || u} 
-                  className="w-5 h-5 rounded-lg bg-surface-2 border border-border-subtle flex items-center justify-center text-[10px] font-black text-accent-primary shadow-sm"
-                  title={u.name || 'Collaborator'}
-                >
-                  {(u.name?.[0] || '?').toUpperCase()}
-                </div>
-              ))}
+              {task.assignedTo.slice(0, 3).map((u, i) => {
+                const userId = (u._id || u).toString();
+                return (
+                  <div 
+                    key={`collab-${taskId}-${userId}-${i}`} 
+                    className="w-5 h-5 rounded-lg bg-surface-2 border border-border-subtle flex items-center justify-center text-[10px] font-black text-accent-primary shadow-sm"
+                    title={u.name || 'Collaborator'}
+                  >
+                    {(u.name?.[0] || '?').toUpperCase()}
+                  </div>
+                );
+              })}
               {task.assignedTo.length > 3 && (
                 <div className="w-5 h-5 rounded-lg bg-surface-2 border border-border-subtle flex items-center justify-center text-[9px] font-black text-text-muted">
                   +{task.assignedTo.length - 3}
@@ -164,17 +168,6 @@ export default function TasksPage() {
     }
   }, [token]);
 
-  const sortedTasks = [...localTasks].sort((a, b) => {
-    if (filters.sort === 'priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-    if (filters.sort === 'deadline') {
-      if (!a.deadline) return 1;
-      if (!b.deadline) return -1;
-      return new Date(a.deadline) - new Date(b.deadline);
-    }
-    if (filters.sort === 'order') return (a.order || 0) - (b.order || 0);
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-
   const handleDragEnd = (event) => {
     const { active, over } = event;
     setActiveId(null);
@@ -188,11 +181,21 @@ export default function TasksPage() {
     reorderTasks(orders, isGuest);
   };
 
-  const handleDelete = async (taskId) => {
-    if (!confirm('Delete this task?')) return;
-    await deleteTask(taskId, isGuest);
-    if (selectedTask?._id === taskId) setSelectedTask(null);
-  };
+  const baseSortedTasks = [...localTasks].sort((a, b) => {
+    if (filters.sort === 'priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+    if (filters.sort === 'deadline') {
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline) - new Date(b.deadline);
+    }
+    if (filters.sort === 'order') return (a.order || 0) - (b.order || 0);
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  // FINAL RENDER SAFETY: Deduplicate final list to prevent React key collisions even during rapid state shifts
+  const sortedTasks = baseSortedTasks.filter((task, index, self) => 
+    index === self.findIndex((t) => t._id.toString() === task._id.toString())
+  );
 
   const activeTask = activeId ? localTasks.find(t => t._id === activeId) : null;
 
@@ -200,6 +203,15 @@ export default function TasksPage() {
     'todo': sortedTasks.filter(t => t.status === 'todo'),
     'in-progress': sortedTasks.filter(t => t.status === 'in-progress'),
     'completed': sortedTasks.filter(t => t.status === 'completed'),
+  };
+
+  const handleDelete = async (target) => {
+    // Determine if we received a task object or an ID
+    const taskId = typeof target === 'object' ? target._id : target;
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      await deleteTask(taskId, isGuest);
+      if (selectedTask?._id === taskId) setSelectedTask(null);
+    }
   };
 
   return (
@@ -321,17 +333,17 @@ export default function TasksPage() {
               onDragStart={({ active }) => setActiveId(active.id)}
               onDragEnd={handleDragEnd}
             >
-              <SortableContext items={sortedTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={sortedTasks.map(t => t._id.toString())} strategy={verticalListSortingStrategy}>
                 <div className="space-y-4">
                   {sortedTasks.map((task, idx) => (
                     <TaskCard
-                      key={task._id}
+                      key={`task-item-${task._id.toString()}`}
                       task={task}
                       index={idx}
                       onSelect={setSelectedTask}
                       onEdit={t => { setEditTask(t); setShowModal(true); }}
                       onDelete={handleDelete}
-                      isSelected={selectedTask?._id === task._id}
+                      isSelected={selectedTask?._id?.toString() === task._id?.toString()}
                     />
                   ))}
                 </div>

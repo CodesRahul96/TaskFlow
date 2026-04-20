@@ -2,7 +2,15 @@ const router = require("express").Router();
 const { protect } = require("../middleware/auth");
 const ctrl = require("../controllers/taskController");
 
+// Public sharing route
+router.get("/public/:token", ctrl.getPublicTask);
+
+// Protected routes below
 router.use(protect);
+
+// Task Sharing
+router.put("/:id/share", ctrl.toggleTaskSharing);
+router.post("/join/:token", ctrl.joinTaskByToken);
 
 // Task CRUD
 router.put("/reorder", ctrl.reorderTasks);

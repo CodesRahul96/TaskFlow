@@ -37,6 +37,8 @@ const taskSchema = new mongoose.Schema({
   subtasks:    [subtaskSchema],
   timeBlocks:  [timeBlockSchema],
   guestId:     { type: String, index: true },
+  shareToken:  { type: String, unique: true, sparse: true },
+  isSharingEnabled: { type: Boolean, default: false },
 }, { timestamps: true });
 
 taskSchema.index({ owner: 1, status: 1 });
