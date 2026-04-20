@@ -17,7 +17,7 @@ const sendEmail = async (options) => {
 
     // 2) Define the email options
     const mailOptions = {
-      from: `TaskFlow <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `taskflow <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: options.email,
       subject: options.subject,
       text: options.message,

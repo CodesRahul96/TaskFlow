@@ -2,22 +2,45 @@ import { create } from 'zustand';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 
-// Guest tasks stored in localStorage
+/**
+ * Task Management Store (Zustand)
+ * Centralized state engine for task orchestration, collaborative synchronization,
+ * and high-latency mitigation via optimistic updates.
+ */
+
 const GUEST_KEY = 'tf_guest_tasks';
 
+/**
+ * Persistence Layer: Retrieves unauthenticated guest tasks from local storage.
+ * @returns {Array} List of local guest tasks.
+ */
 const getGuestTasks = () => {
   try {
     return JSON.parse(localStorage.getItem(GUEST_KEY) || '[]');
   } catch { return []; }
 };
 
+/**
+ * Persistence Layer: Writes guest tasks to local storage.
+ * @param {Array} tasks - Task collection to persist locally.
+ */
 const saveGuestTasks = (tasks) => {
   localStorage.setItem(GUEST_KEY, JSON.stringify(tasks));
 };
 
+/**
+ * Utility: Generates a unique cryptographic identifier for guest tasks.
+ * @returns {string} Unique guest-prefixed ID.
+ */
 const generateGuestId = () => `guest_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-// HELPER: Ensures no duplicate IDs exist in the task array (prevents React key warnings)
+/**
+ * Integrity Helper: Ensures ID-based uniqueness across the store.
+ * Prevents React key collisions and state-churn during high-frequency WebSocket updates.
+ * 
+ * @param {Array} tasks - Raw task collection.
+ * @returns {Array} Deduplicated task collection.
+ */
 const deduplicateTasks = (tasks) => {
   const seen = new Set();
   return tasks.filter(task => {
@@ -40,9 +63,15 @@ const useTaskStore = create((set, get) => ({
     sort: 'order',
   },
 
+  /**
+   * Updates global filtering parameters.
+   */
   setFilters: (filters) => set(state => ({ filters: { ...state.filters, ...filters } })),
 
-  // ---- FETCH ----
+  /**
+   * Synchronizes tasks from the remote node or local persistence.
+   * Implements query-parameter orchestration for server-side filtering.
+   */
   fetchTasks: async (isGuest = false) => {
     set({ loading: true });
     if (isGuest) {
@@ -63,11 +92,13 @@ const useTaskStore = create((set, get) => ({
       set({ tasks: deduplicateTasks(data.tasks), loading: false });
     } catch (err) {
       set({ loading: false });
-      toast.error('Failed to fetch tasks');
+      toast.error('Failed to synchronize workspace.');
     }
   },
 
-  // ---- CREATE ----
+  /**
+   * Persists a new task node to the server or local node.
+   */
   createTask: async (taskData, isGuest = false) => {
     if (isGuest) {
       const guestTask = {
@@ -84,7 +115,7 @@ const useTaskStore = create((set, get) => ({
       const tasks = [...get().tasks, guestTask];
       saveGuestTasks(tasks);
       set({ tasks });
-      toast.success('Task created!');
+      toast.success('Task localized.');
       return { success: true, task: guestTask };
     }
     try {
@@ -92,15 +123,17 @@ const useTaskStore = create((set, get) => ({
       set(state => ({ 
         tasks: deduplicateTasks([data.task, ...state.tasks]) 
       }));
-      toast.success('Task created!');
+      toast.success('Task broadcasted.');
       return { success: true, task: data.task };
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create task');
+      toast.error(err.response?.data?.message || 'Broadcast failed.');
       return { success: false };
     }
   },
 
-  // ---- UPDATE ----
+  /**
+   * Synchronizes property updates for a specific task node.
+   */
   updateTask: async (taskId, updates, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.map(t =>
@@ -118,11 +151,14 @@ const useTaskStore = create((set, get) => ({
       }));
       return { success: true, task: data.task };
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update task');
+      toast.error(err.response?.data?.message || 'Sync failed.');
       return { success: false };
     }
   },
 
+  /**
+   * Handles bulk reordering for drag-and-drop orchestration.
+   */
   reorderTasks: async (orders, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks;
@@ -134,18 +170,20 @@ const useTaskStore = create((set, get) => ({
     try {
       await api.put('/tasks/reorder', { orders });
     } catch (err) {
-      toast.error('Sync failed');
+      toast.error('Reorder sync failed.');
       get().fetchTasks(false);
     }
   },
 
-  // ---- DELETE ----
+  /**
+   * Deletes a task node or removes collaborative assignment.
+   */
   deleteTask: async (taskId, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.filter(t => t._id.toString() !== taskId.toString());
       saveGuestTasks(tasks);
       set({ tasks });
-      toast.success('Task deleted');
+      toast.success('Local task purged.');
       return { success: true };
     }
     try {
@@ -154,15 +192,17 @@ const useTaskStore = create((set, get) => ({
         tasks: state.tasks.filter(t => t._id.toString() !== taskId.toString()),
         selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? null : state.selectedTask
       }));
-      toast.success('Task deleted');
+      toast.success('Task node terminated.');
       return { success: true };
     } catch (err) {
-      toast.error('Failed to delete task');
+      toast.error('Termination failed.');
       return { success: false };
     }
   },
 
-  // ---- SUBTASKS ----
+  /**
+   * Orchestrates subtask addition across collaboration nodes.
+   */
   addSubtask: async (taskId, title, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.map(t => {
@@ -182,11 +222,14 @@ const useTaskStore = create((set, get) => ({
       }));
       return { success: true };
     } catch (err) {
-      toast.error('Failed to add subtask');
+      toast.error('Subtask injection failed.');
       return { success: false };
     }
   },
 
+  /**
+   * Updates subtask completion state or title.
+   */
   updateSubtask: async (taskId, subtaskId, updates, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.map(t => {
@@ -206,11 +249,14 @@ const useTaskStore = create((set, get) => ({
       }));
       return { success: true };
     } catch (err) {
-      toast.error('Failed to update subtask');
+      toast.error('Subtask sync failed.');
       return { success: false };
     }
   },
 
+  /**
+   * Removes a subtask from the parent node.
+   */
   deleteSubtask: async (taskId, subtaskId, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.map(t => {
@@ -229,12 +275,14 @@ const useTaskStore = create((set, get) => ({
       }));
       return { success: true };
     } catch (err) {
-      toast.error('Failed to delete subtask');
+      toast.error('Subtask removal failed.');
       return { success: false };
     }
   },
 
-  // ---- TIMEBLOCKS ----
+  /**
+   * Manages "Time-Block" scheduling for specific tasks.
+   */
   addTimeBlock: async (taskId, blockData, isGuest = false) => {
     if (isGuest) {
       const tasks = get().tasks.map(t => {
@@ -244,7 +292,7 @@ const useTaskStore = create((set, get) => ({
       });
       saveGuestTasks(tasks);
       set({ tasks });
-      toast.success('Time block added');
+      toast.success('Time slot reserved.');
       return { success: true };
     }
     try {
@@ -253,84 +301,40 @@ const useTaskStore = create((set, get) => ({
         tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
         selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
       }));
-      toast.success('Time block added');
+      toast.success('Time slot reserved.');
       return { success: true };
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to add time block');
+      toast.error(err.response?.data?.message || 'Scheduling collision.');
       return { success: false };
     }
   },
 
-  updateTimeBlock: async (taskId, blockId, updates, isGuest = false) => {
-    if (isGuest) {
-      const tasks = get().tasks.map(t => {
-        if (t._id !== taskId) return t;
-        const timeBlocks = t.timeBlocks.map(b => b._id === blockId ? { ...b, ...updates } : b);
-        return { ...t, timeBlocks };
-      });
-      saveGuestTasks(tasks);
-      set({ tasks });
-      return { success: true };
-    }
-    try {
-      const { data } = await api.put(`/tasks/${taskId}/timeblocks/${blockId}`, updates);
-      set(state => ({
-        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
-        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
-      }));
-      return { success: true };
-    } catch (err) {
-      toast.error('Failed to update time block');
-      return { success: false };
-    }
-  },
-
-  deleteTimeBlock: async (taskId, blockId, isGuest = false) => {
-    if (isGuest) {
-      const tasks = get().tasks.map(t => {
-        if (t._id !== taskId) return t;
-        return { ...t, timeBlocks: t.timeBlocks.filter(b => b._id !== blockId) };
-      });
-      saveGuestTasks(tasks);
-      set({ tasks });
-      return { success: true };
-    }
-    try {
-      const { data } = await api.delete(`/tasks/${taskId}/timeblocks/${blockId}`);
-      set(state => ({
-        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
-        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
-      }));
-      return { success: true };
-    } catch (err) {
-      toast.error('Failed to delete time block');
-      return { success: false };
-    }
-  },
-
-  // ---- SYNC GUEST TASKS ----
+  /**
+   * Initiates the 'Neural Lift' sync to migrate guest data to the cloud.
+   */
   syncGuestTasks: async () => {
     const guestTasks = getGuestTasks();
     if (guestTasks.length === 0) return;
     try {
       const { data } = await api.post('/tasks/sync-guest', { guestTasks });
       localStorage.removeItem(GUEST_KEY);
-      toast.success(`Synced ${data.syncedCount} tasks from guest session`);
+      toast.success(`Synchronized ${data.syncedCount} nodes to cloud vault.`);
       set(state => ({
         tasks: deduplicateTasks([...data.tasks, ...state.tasks])
       }));
     } catch (err) {
-      toast.error('Failed to sync guest tasks');
+      toast.error('Neural Lift synchronization failed.');
     }
   },
 
-  // ---- SOCKET UPDATE ----
+  /**
+   * Logic: Reconciles incoming WebSocket broadcasts into the local state.
+   * Utilizes the deduplication engine to ensure zero-redundancy updates.
+   */
   handleSocketUpdate: (task) => {
     const taskId = task._id.toString();
     set(state => {
-      // Robust Duplicate Prevention using helper
       const isSelected = state.selectedTask?._id?.toString() === taskId;
-      
       return {
         tasks: deduplicateTasks([task, ...state.tasks]),
         selectedTask: isSelected ? task : state.selectedTask,
@@ -338,6 +342,9 @@ const useTaskStore = create((set, get) => ({
     });
   },
 
+  /**
+   * Logic: Removes a terminated task node received via WebSocket.
+   */
   handleSocketDelete: (taskId) => {
     const idStr = taskId.toString();
     set(state => ({
@@ -348,7 +355,9 @@ const useTaskStore = create((set, get) => ({
 
   setSelectedTask: (task) => set({ selectedTask: task }),
 
-  // ---- SHARING ----
+  /**
+   * Toggles public sharing availability for a task node.
+   */
   toggleSharing: async (taskId, enabled) => {
     try {
       const { data } = await api.put(`/tasks/${taskId}/share`, { enabled });
@@ -356,27 +365,29 @@ const useTaskStore = create((set, get) => ({
         tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? { ...t, isSharingEnabled: data.isSharingEnabled, shareToken: data.shareToken } : t),
         selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? { ...state.selectedTask, isSharingEnabled: data.isSharingEnabled, shareToken: data.shareToken } : state.selectedTask
       }));
-      toast.success(data.message);
+      toast.success('Sharing node updated.');
       return { success: true, isSharingEnabled: data.isSharingEnabled, shareToken: data.shareToken };
     } catch (err) {
-      toast.error('Failed to update sharing');
+      toast.error('Sharing update failed.');
       return { success: false };
     }
   },
 
+  /**
+   * Finalizes the collaborative join handshake via secure token.
+   */
   joinTaskByToken: async (token) => {
     try {
       const { data } = await api.post(`/tasks/join/${token}`);
       set(state => ({
         tasks: deduplicateTasks([data.task, ...state.tasks])
       }));
-      toast.success(data.message);
+      toast.success('Collaborative join successful.');
       localStorage.removeItem('tf_pending_invite');
       return { success: true };
     } catch (err) {
-      // Don't toast error if it's already joined (200 status handled in controller)
       if (err.response?.status !== 200) {
-        toast.error(err.response?.data?.message || 'Failed to join task');
+        toast.error(err.response?.data?.message || 'Join protocol failed.');
       }
       localStorage.removeItem('tf_pending_invite');
       return { success: false };

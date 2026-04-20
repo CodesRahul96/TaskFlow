@@ -93,9 +93,9 @@ const SharePage = () => {
                     {/* Brand Header */}
                     <div className="flex items-center justify-center gap-3 mb-12 opacity-80">
                         <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                            <span className="text-white font-black text-xl">T</span>
+                            <span className="text-white font-black text-xl">t</span>
                         </div>
-                        <span className="text-2xl font-black text-white tracking-tighter">TASKFLOW</span>
+                        <span className="text-2xl font-black text-white tracking-tighter">taskflow</span>
                     </div>
 
                     {/* Task Card */}
@@ -110,9 +110,14 @@ const SharePage = () => {
                         </div>
 
                         <div className="text-center space-y-4">
-                            <h1 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tight">
-                                Private Invitation
+                            <h1 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tight uppercase">
+                                {task.title || 'Private Invitation'}
                             </h1>
+                            <div className="flex justify-center">
+                                <span className="px-4 py-1.5 bg-white/10 border border-white/10 rounded-full text-[10px] font-black tracking-widest text-indigo-400 uppercase">
+                                    Status: {task.status || 'Active'}
+                                </span>
+                            </div>
                             <p className="text-slate-400 text-lg leading-relaxed max-w-md mx-auto">
                                 <span className="font-bold text-indigo-400">{task.owner?.name || 'A TaskFlow user'}</span> has invited you to collaborate on a private task.
                             </p>
@@ -149,7 +154,7 @@ const SharePage = () => {
 
                     <div className="mt-8 flex items-center justify-center gap-2 text-slate-500 text-sm">
                         <ShieldCheck className="w-4 h-4 text-indigo-500/50" />
-                        Secure collaborative link provided by TaskFlow
+                        Secure collaborative link provided by taskflow
                     </div>
                 </div>
             </div>

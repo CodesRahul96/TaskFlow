@@ -1,3 +1,10 @@
+/**
+ * taskflow | Primary Application Shell
+ * 
+ * Orchestrates global routing, state-reconciliation, and multi-node synchronization.
+ * Implements code-splitting (Suspense) and resilience protocols for seamless workspace delivery.
+ */
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
@@ -7,7 +14,7 @@ import useTaskStore from "./store/taskStore";
 import Layout from "./components/layout/Layout";
 import { useSocket } from "./hooks/useSocket";
 
-// Lazy Loaded Pages for performance optimization
+// Lazy-Loaded Application Nodes (Neural Nodes)
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -21,21 +28,31 @@ const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const VerifyLogin = lazy(() => import("./pages/VerifyLogin"));
 const SharePage = lazy(() => import("./pages/SharePage"));
 
-// Professional Loading Fallback
+/**
+ * Bootstrap Loader: Visual feedback during deferred component initialization.
+ */
 function PageLoader() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
        <div className="w-12 h-1 h-12 border-4 border-accent-primary/20 border-t-accent-primary rounded-full animate-spin mb-4" />
-       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted opacity-40">Initializing Node...</p>
+       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted opacity-40">Synchronizing Node...</p>
     </div>
   );
 }
 
+/**
+ * Route Orchestrator: Manages state-bound access control and synchronization hooks.
+ */
 function AppRoutes() {
   const { token, isGuest, isOnline, setOnline } = useAuthStore();
   const { joinTaskByToken } = useTaskStore();
+  
+  // Initialize Socket.IO bridge upon identity verification
   useSocket(!!token);
 
+  /**
+   * Post-Login Handshake: Consumes pending invitations stored in the local vault.
+   */
   useEffect(() => {
     if (token && !isGuest) {
       const pendingInvite = localStorage.getItem('tf_pending_invite');
@@ -45,6 +62,9 @@ function AppRoutes() {
     }
   }, [token, isGuest, joinTaskByToken]);
 
+  /**
+   * Resilience Protocol: Monitors connectivity state for local-merging transitions.
+   */
   useEffect(() => {
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
@@ -93,6 +113,10 @@ function AppRoutes() {
   );
 }
 
+/**
+ * Root Application Component
+ * Initializes security providers and history orchestration.
+ */
 export default function App() {
   const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 

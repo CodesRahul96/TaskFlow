@@ -11,6 +11,7 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -20,6 +21,7 @@
     "express-rate-limit": "^8.3.1",
     "express-validator": "^7.0.1",
     "helmet": "^7.0.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "morgan": "^1.10.0",

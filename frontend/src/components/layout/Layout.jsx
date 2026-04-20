@@ -8,6 +8,7 @@ import {
 import useAuthStore from '../../store/authStore';
 import BottomNav from './BottomNav';
 import NotificationCenter from '../ui/NotificationCenter';
+import AICompanion from '../ai/AICompanion';
 import { useTheme } from '../../context/ThemeProvider';
 
 const navItems = [
@@ -231,7 +232,7 @@ export default function Layout() {
         {/* Desktop Footer Signature */}
         <footer className="hidden md:flex items-center justify-between px-10 py-3 bg-bg-primary/30 border-t border-border-subtle/20 z-10">
            <div className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] opacity-40">
-              Build v2.4.1-Stable
+              Build Stable-Release
            </div>
            <div className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
               <span>Hand-engineered with</span>
@@ -241,6 +242,7 @@ export default function Layout() {
         </footer>
 
         <BottomNav />
+        <AICompanion />
       </div>
     </div>
   );

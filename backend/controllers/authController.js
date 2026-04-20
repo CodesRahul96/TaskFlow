@@ -16,15 +16,19 @@ const logAudit = require("../utils/audit");
  */
 
 /**
- * Registers a new user and sends a verification email.
- * @route POST /api/auth/register
- * @access Public
+ * Registers a new user and initiates the email verification protocol.
+ * Implements reCAPTCHA v3 integrity checks and collision detection for existing emails.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Registration data (name, email, captchaToken)
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 exports.register = async (req, res, next) => {
   try {
     const { name, email, captchaToken } = req.body;
 
-    // Verify reCAPTCHA integrity before processing
+    // Security Gate: reCAPTCHA verification
     const { success, score } = await verifyRecaptcha(captchaToken);
     if (!success) {
       return res.status(400).json({ 
@@ -33,7 +37,7 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Ensure unique account per email
+    // Deterministic check for account collision
     if (await User.findOne({ email })) {
       return res.status(400).json({ message: "Email already registered" });
     }
@@ -47,21 +51,23 @@ exports.register = async (req, res, next) => {
     });
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-    const message = `Welcome to TaskFlow, ${name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}`;
+    const message = `Welcome to taskflow, ${name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}`;
 
     try {
       await sendEmail({
         email: user.email,
-        subject: "Verify your TaskFlow account",
+        subject: `Verify your taskflow account`,
         message,
         html: `<h1>Welcome!</h1><p>Please click <a href="${verifyUrl}">here</a> to verify your account.</p>`,
       });
+      
       res.status(201).json({
         message: "Registration successful! Please check your email to verify your account.",
       });
+
       await logAudit(user._id, user.name, "user_registered", null, { email: user.email });
     } catch (err) {
-      // If email fails, we might want to delete the user or just inform them
+      // Recovery logic: Clear token if delivery fails to prevent invalid verification states
       user.verificationToken = undefined;
       await user.save();
       return res.status(500).json({ message: "Error sending verification email. Please try again later." });
@@ -72,9 +78,12 @@ exports.register = async (req, res, next) => {
 };
 
 /**
- * Verifies user email via token-matching.
- * @route GET /api/auth/verify-email
- * @access Public
+ * Finalizes the email verification handshake.
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.query.token - Cryptographic verification token
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 exports.verifyEmail = async (req, res, next) => {
   try {
@@ -96,15 +105,13 @@ exports.verifyEmail = async (req, res, next) => {
 };
 
 /**
- * Initiates login by sending a magic link to the user's email.
- * @route POST /api/auth/login
- * @access Public
+ * Initiates the Magic Link authentication flow.
+ * Generates a short-lived security token and dispatches it via the Email Gateway.
  */
 exports.login = async (req, res, next) => {
   try {
     const { email, captchaToken } = req.body;
 
-    // Verify reCAPTCHA integrity
     const { success, score } = await verifyRecaptcha(captchaToken);
     if (!success) {
       return res.status(400).json({ 
@@ -114,31 +121,26 @@ exports.login = async (req, res, next) => {
     }
 
     const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: "Email not found." });
+    if (!user.isVerified) return res.status(401).json({ message: "Please verify your email before logging in" });
 
-    if (!user) {
-      return res.status(401).json({ message: "Email not found. Please register first." });
-    }
-
-    if (!user.isVerified) {
-      return res.status(401).json({ message: "Please verify your email before logging in" });
-    }
-
-    // Generate login token (Magic Link)
+    // State Management: Magic Link generation
     const loginToken = crypto.randomBytes(32).toString("hex");
-    const sessionId = req.body.sessionId; // Get sessionId from frontend
+    const sessionId = req.body.sessionId; 
+    
     user.loginToken = loginToken;
-    user.loginTokenExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
+    user.loginTokenExpires = Date.now() + 5 * 60 * 1000; // 5-minute TTL
     await user.save();
 
     let loginUrl = `${process.env.FRONTEND_URL}/verify-login?token=${loginToken}`;
     if (sessionId) loginUrl += `&sessionId=${sessionId}`;
     
-    const message = `Click the link below to log in to TaskFlow:\n\n${loginUrl}\n\nThis link expires in 5 minutes.`;
+    const message = `taskflow\n${loginUrl}\n\nThis security link expires in 5 minutes.`;
 
     try {
       await sendEmail({
         email: user.email,
-        subject: "TaskFlow Login Link",
+        subject: `taskflow Login Link`,
         message,
         html: `<p>Click <a href="${loginUrl}">here</a> to log in to your dashboard. This link expires in 5 minutes.</p>`,
       });
@@ -147,7 +149,7 @@ exports.login = async (req, res, next) => {
       user.loginToken = undefined;
       user.loginTokenExpires = undefined;
       await user.save();
-      return res.status(500).json({ message: "Error sending magic link. Please try again later." });
+      return res.status(500).json({ message: "Error sending magic link." });
     }
   } catch (err) {
     next(err);
@@ -155,9 +157,8 @@ exports.login = async (req, res, next) => {
 };
 
 /**
- * Finalizes login by verifying the magic link token and issuing a session.
- * @route GET /api/auth/verify-login
- * @access Public
+ * Finalizes the authentication handshake by verifying the Magic Link token.
+ * Issues a JWT-backed secure HttpOnly cookie and notifies paired device nodes.
  */
 exports.verifyLogin = async (req, res, next) => {
   try {
@@ -167,57 +168,46 @@ exports.verifyLogin = async (req, res, next) => {
       loginTokenExpires: { $gt: Date.now() },
     });
 
-    if (!user) {
-      return res.status(400).json({ message: "Invalid or expired login link" });
-    }
+    if (!user) return res.status(400).json({ message: "Invalid or expired login link" });
 
+    // Single-use token consumption
     user.loginToken = undefined;
     user.loginTokenExpires = undefined;
     await user.save();
 
-    // Check if MFA is enabled
+    // Challenge redirection for MFA-enabled nodes
     if (user.mfaEnabled) {
-      // Return a temporary token for the MFA challenge
       const mfaToken = jwt.sign({ id: user._id, type: 'mfa_challenge' }, process.env.JWT_SECRET, { expiresIn: '5m' });
-      return res.json({
-        mfaRequired: true,
-        mfaToken,
-        message: "MFA code required",
-      });
+      return res.json({ mfaRequired: true, mfaToken });
     }
 
     const authToken = generateToken(user._id);
 
-    // Set HttpOnly Cookie
+    // Secure Session Orchestration: HttpOnly cookie deployment
     res.cookie("tf_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", 
       sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, 
     });
 
-    // If sessionId exists, notify the original device via Socket.IO
+    // Cross-node synchronization: Notify original requestor via Socket.IO
     const sessionId = req.query.sessionId;
     if (sessionId) {
       const io = req.app.get("io");
-      io.to(`login:${sessionId}`).emit("login-success", {
-        token: authToken,
-        user,
-      });
+      io.to(`login:${sessionId}`).emit("login-success", { token: authToken, user });
     }
 
-    res.json({
-      token: authToken, // Balanced: still return for backward compatibility but encourage cookie usage
-      user,
-      message: "Successfully logged in!",
-    });
+    res.json({ token: authToken, user, message: "Successfully logged in!" });
     await logAudit(user._id, user.name, "user_login", null, { method: "magic_link" });
   } catch (err) {
     next(err);
   }
 };
 
-// POST /api/auth/logout
+/**
+ * Purges the session cookie and terminates the user's interface session.
+ */
 exports.logout = async (req, res) => {
   res.clearCookie("tf_token", {
     httpOnly: true,
@@ -227,15 +217,16 @@ exports.logout = async (req, res) => {
   res.json({ message: "Successfully logged out" });
 };
 
-// --- MFA FLOW ---
-
-// GET /api/auth/mfa/setup
+/**
+ * Initializes the MFA setup protocol.
+ * Generates a cryptographic secret and corresponding OTPAuth QR code.
+ */
 exports.setupMFA = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     if (user.mfaEnabled) return res.status(400).json({ message: "MFA is already enabled" });
 
-    const secret = speakeasy.generateSecret({ name: `TaskFlow (${user.email})` });
+    const secret = speakeasy.generateSecret({ name: `taskflow (${user.email})` });
     user.mfaSecret = secret.base32;
     await user.save();
 
@@ -246,7 +237,9 @@ exports.setupMFA = async (req, res, next) => {
   }
 };
 
-// POST /api/auth/mfa/verify
+/**
+ * Validates the initial MFA handshake and activates the user's neural shield.
+ */
 exports.verifyMFASetup = async (req, res, next) => {
   try {
     const { token } = req.body;
@@ -270,7 +263,9 @@ exports.verifyMFASetup = async (req, res, next) => {
   }
 };
 
-// POST /api/auth/mfa/validate (Login Challenge)
+/**
+ * Validates the second factor (TOTP) during the authentication challenge sequence.
+ */
 exports.validateMFA = async (req, res, next) => {
   try {
     const { mfaToken, code, sessionId } = req.body;
@@ -290,7 +285,6 @@ exports.validateMFA = async (req, res, next) => {
 
     const authToken = generateToken(user._id);
 
-    // Set HttpOnly Cookie
     res.cookie("tf_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -298,13 +292,9 @@ exports.validateMFA = async (req, res, next) => {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    // Notify other device if sessionId exists
     if (sessionId) {
       const io = req.app.get("io");
-      io.to(`login:${sessionId}`).emit("login-success", {
-        token: authToken,
-        user,
-      });
+      io.to(`login:${sessionId}`).emit("login-success", { token: authToken, user });
     }
 
     res.json({ token: authToken, user, message: "Successfully logged in!" });
@@ -313,7 +303,9 @@ exports.validateMFA = async (req, res, next) => {
   }
 };
 
-// POST /api/auth/mfa/disable
+/**
+ * Deactivates the Multi-Factor Authentication shield for the user node.
+ */
 exports.disableMFA = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
@@ -326,12 +318,16 @@ exports.disableMFA = async (req, res, next) => {
   }
 };
 
-// GET /api/auth/me
+/**
+ * Retrieves the current authenticated operator's identity metadata.
+ */
 exports.getMe = async (req, res) => {
   res.json({ user: req.user });
 };
 
-// PUT /api/auth/profile
+/**
+ * Updates the user's profile metadata (name, avatar).
+ */
 exports.updateProfile = async (req, res, next) => {
   try {
     const { name, avatar } = req.body;

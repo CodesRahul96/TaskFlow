@@ -10,31 +10,42 @@ const crypto = require("crypto");
 
 /**
  * Retrieves tasks with support for filtering, searching, and custom sorting.
- * @route GET /api/tasks
- * @access Private
+ * Implements access control to ensure users only retrieve tasks they own or are assigned to.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters for filtering (status, priority, tag, search, sort)
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 exports.getTasks = async (req, res, next) => {
   try {
     const { status, priority, tag, search, sort = "order" } = req.query;
+    
+    // Authorization filter: owner or assignee
     const filter = {
       $or: [{ owner: req.user._id }, { assignedTo: req.user._id }],
     };
-    // Ensure uniqueness by merging overlapping results
+
+    // Ensure unique result set by aggregating potential overlaps
     const taskIds = await Task.find(filter).distinct("_id");
     const uniqueFilter = { _id: { $in: taskIds } };
     
+    // Apply optional business logic filters
     if (status) uniqueFilter.status = status;
     if (priority) uniqueFilter.priority = priority;
     if (tag) uniqueFilter.tags = tag;
     if (search) uniqueFilter.title = { $regex: search, $options: "i" };
 
-    // Update query to use the unique set of IDs
     let tasks;
+    // Handle complex priority-based sorting vs standard field sorting
     if (sort === "priority" || sort === "-priority") {
       const allTasks = await Task.find(uniqueFilter)
         .populate("owner", "name email")
         .populate("assignedTo", "name email");
+      
       const dir = sort.startsWith("-") ? -1 : 1;
+      const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
+      
       tasks = allTasks.sort(
         (a, b) =>
           dir *
@@ -42,15 +53,10 @@ exports.getTasks = async (req, res, next) => {
             (PRIORITY_ORDER[b.priority] ?? 99)),
       );
     } else {
-      const allowedSorts = [
-        "-createdAt",
-        "createdAt",
-        "-deadline",
-        "deadline",
-        "order",
-      ];
+      const allowedSorts = ["-createdAt", "createdAt", "-deadline", "deadline", "order"];
       const sortField = allowedSorts.includes(sort) ? sort : "-createdAt";
-      tasks = await Task.find(filter)
+      
+      tasks = await Task.find(uniqueFilter)
         .sort(sortField)
         .populate("owner", "name email")
         .populate("assignedTo", "name email");
@@ -63,13 +69,18 @@ exports.getTasks = async (req, res, next) => {
 };
 
 /**
- * Creates a new task and associated audit trails.
- * @route POST /api/tasks
- * @access Private
+ * Creates a new task and initializes audit trails.
+ * Broadcasts the creation event to the owner's socket room.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Task properties (title, description, etc.)
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 exports.createTask = async (req, res, next) => {
   try {
     const task = await Task.create({ ...req.body, owner: req.user._id });
+    
     const populatedTask = await Task.findById(task._id)
       .populate("owner", "name email")
       .populate("assignedTo", "name email");
@@ -77,8 +88,10 @@ exports.createTask = async (req, res, next) => {
     await logAudit(req.user._id, req.user.name, "task_created", populatedTask._id, {
       title: populatedTask.title,
     });
+
     const io = req.app.get("io");
     io.to(req.user._id.toString()).emit("task-created", { task: populatedTask });
+    
     res.status(201).json({ task: populatedTask });
   } catch (err) {
     next(err);
@@ -86,9 +99,13 @@ exports.createTask = async (req, res, next) => {
 };
 
 /**
- * Retrieves a single task by ID with access validation.
- * @route GET /api/tasks/:id
- * @access Private
+ * Retrieves a single task by ID with strict access validation.
+ * Supports deep population of subtask completion metadata.
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - Task ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 exports.getTask = async (req, res, next) => {
   try {
@@ -96,12 +113,16 @@ exports.getTask = async (req, res, next) => {
       .populate("owner", "name email")
       .populate("assignedTo", "name email")
       .populate("subtasks.completedBy", "name");
+
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    // Access Control: Owner or explicit Assignee only
     const canAccess =
       task.owner._id.toString() === req.user._id.toString() ||
       task.assignedTo.some((u) => (u._id || u).toString() === req.user._id.toString());
 
     if (!canAccess) return res.status(403).json({ message: "Not authorised" });
+    
     res.json({ task });
   } catch (err) {
     next(err);
@@ -110,47 +131,46 @@ exports.getTask = async (req, res, next) => {
 
 /**
  * Updates task properties and synchronizes changes across collaborative sessions.
- * @route PUT /api/tasks/:id
- * @access Private
+ * Implements "Safe Injection" to prevent overwriting embedded arrays like subtasks.
+ * Triggers notifications for newly assigned collaborators.
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - Task ID
+ * @param {Object} req.body - Updated properties
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 exports.updateTask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    // Authorization: Members of the collaborative room only
     const canEdit =
       task.owner.toString() === req.user._id.toString() ||
       task.assignedTo.some((u) => (u._id || u).toString() === req.user._id.toString());
 
     if (!canEdit) return res.status(403).json({ message: "Not authorised" });
+
     const io = req.app.get("io");
-
-
-    // Track status change
     const prevStatus = task.status;
     const prevAssigned = (task.assignedTo || []).map((id) => id.toString());
-    const { subtasks, timeBlocks, owner, ...safe } = req.body; // prevent overwriting embedded arrays this way
+
+    // Sanitize input: decouple embedded arrays from generic updates
+    const { subtasks, timeBlocks, owner, ...safe } = req.body; 
     Object.assign(task, safe);
     await task.save();
 
-    // Determine audit action
     const newAssigned = (task.assignedTo || []).map((id) => id.toString());
-    const assigneesChanged =
-      JSON.stringify(prevAssigned.sort()) !==
-      JSON.stringify(newAssigned.sort());
+    const assigneesChanged = JSON.stringify(prevAssigned.sort()) !== JSON.stringify(newAssigned.sort());
 
+    // Process new collaborator invitations
     if (assigneesChanged) {
-      await logAudit(
-        req.user._id,
-        req.user.name,
-        "collaborator_added",
-        task._id,
-        {
-          title: task.title,
-          assignedCount: newAssigned.length,
-        },
-      );
+      await logAudit(req.user._id, req.user.name, "collaborator_added", task._id, {
+        title: task.title,
+        assignedCount: newAssigned.length,
+      });
 
-      // Create notifications for newly added users
       const addedUsers = newAssigned.filter(id => !prevAssigned.includes(id));
       for (const uid of addedUsers) {
         if (uid === req.user._id.toString()) continue;
@@ -165,29 +185,22 @@ exports.updateTask = async (req, res, next) => {
       }
     }
 
-    // CRITICAL: Hydrate task with user metadata (names, emails) before dispatching to the client.
-    // This prevents frontend crashes in components that expect full user objects rather than IDs.
+    // Hydrate task metadata for frontend consistency
     const populatedTask = await Task.findById(task._id)
       .populate("owner", "name email")
       .populate("assignedTo", "name email")
       .populate("subtasks.completedBy", "name");
 
-    const action =
-      prevStatus !== task.status ? "task_status_changed" : "task_updated";
+    const action = prevStatus !== task.status ? "task_status_changed" : "task_updated";
     await logAudit(req.user._id, req.user.name, action, task._id, {
       ...(prevStatus !== task.status && { from: prevStatus, to: task.status }),
       title: task.title,
     });
 
-    const allRelevantUsers = new Set([
-      ...newAssigned,
-      ...prevAssigned,
-      task.owner.toString(),
-    ]);
-
+    // Multi-node sync: Broadcast update to all relevant parties
+    const allRelevantUsers = new Set([...newAssigned, ...prevAssigned, task.owner.toString()]);
     allRelevantUsers.forEach((uid) => {
-      // Opt-out strategy for the initiator to avoid redundant local state churn
-      // and mitigate race conditions between REST response and WebSocket broadcast.
+      // Initiator is skipped to prevent race conditions vs local REST response
       if (uid === req.user._id.toString()) return;
       io.to(uid).emit("task-updated", { task: populatedTask });
     });
@@ -198,15 +211,23 @@ exports.updateTask = async (req, res, next) => {
   }
 };
 
-// DELETE /api/tasks/:id
+/**
+ * Deletes a task or removes a collaborator.
+ * Logic Branch: 
+ * 1. Owners: Perform hard deletion from the database.
+ * 2. Collaborators: Perform a "Leave Task" operation by removing their UID from assignedTo.
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - Task ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
 exports.deleteTask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
     
-    // IF USER IS NOT THE OWNER:
-    // They are likely a collaborator trying to 'Remove' the task from their list.
-    // Instead of a 403, we will 'Leave' the task.
+    // Authorization Override: Collaborator "Leave" Logic
     if (task.owner.toString() !== req.user._id.toString()) {
       const wasAssigned = task.assignedTo.some(id => id.toString() === req.user._id.toString());
       
@@ -214,7 +235,6 @@ exports.deleteTask = async (req, res, next) => {
         return res.status(403).json({ message: "You are not authorized to modify this task." });
       }
 
-      // Remove current user from collaborators list
       task.assignedTo = task.assignedTo.filter(id => id.toString() !== req.user._id.toString());
       await task.save();
 
@@ -223,7 +243,6 @@ exports.deleteTask = async (req, res, next) => {
       const io = req.app.get("io");
       io.to(req.user._id.toString()).emit("task-deleted", { taskId: task._id.toString() });
       
-      // Notify owner that someone left
       io.to(task.owner.toString()).emit("task-updated", { 
         task: await Task.findById(task._id).populate("owner assignedTo", "name email") 
       });
@@ -231,7 +250,7 @@ exports.deleteTask = async (req, res, next) => {
       return res.json({ message: "You have left the task successfully." });
     }
 
-    // IF USER IS OWNER: Full deletion
+    // Owner Execution: Hard Deletion
     await task.deleteOne();
     await logAudit(req.user._id, req.user.name, "task_deleted", task._id, {
       title: task.title,
@@ -252,11 +271,20 @@ exports.deleteTask = async (req, res, next) => {
   }
 };
 
-// POST /api/tasks/sync-guest
+/**
+ * Synchronizes anonymous guest tasks with a newly created user account.
+ * Performs a "Neural Lift" by migrating local storage task objects to the MongoDB cloud vault.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Array} req.body.guestTasks - Array of guest task objects
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
 exports.syncGuestTasks = async (req, res, next) => {
   try {
     const { guestTasks = [] } = req.body;
     const created = [];
+
     for (const t of guestTasks) {
       const { _id, isGuest, timeBlocks = [], subtasks = [], ...rest } = t;
       const task = await Task.create({
@@ -278,9 +306,11 @@ exports.syncGuestTasks = async (req, res, next) => {
       });
       created.push(task);
     }
+
     await logAudit(req.user._id, req.user.name, "guest_sync", null, {
       count: created.length,
     });
+
     res.json({ syncedCount: created.length, tasks: created });
   } catch (err) {
     next(err);
@@ -289,13 +319,23 @@ exports.syncGuestTasks = async (req, res, next) => {
 
 // ── Subtasks ────────────────────────────────────────────────────────────────
 
-// POST /api/tasks/:id/subtasks
+/**
+ * Appends a new subtask to a parent task node.
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - Parent Task ID
+ * @param {string} req.body.title - Subtask title
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
 exports.addSubtask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
+
     task.subtasks.push({ title: req.body.title, order: task.subtasks.length });
     await task.save();
+
     const populatedTask = await Task.findById(task._id)
       .populate("owner", "name email")
       .populate("assignedTo", "name email")
@@ -304,17 +344,27 @@ exports.addSubtask = async (req, res, next) => {
     await logAudit(req.user._id, req.user.name, "subtask_created", task._id, {
       title: req.body.title,
     });
+
     res.json({ task: populatedTask });
   } catch (err) {
     next(err);
   }
 };
 
-// PUT /api/tasks/:id/subtasks/:subId
+/**
+ * Updates an individual subtask's state (completion status, title, order).
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - Parent Task ID
+ * @param {string} req.params.subId - Subtask ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
 exports.updateSubtask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
+
     const sub = task.subtasks.id(req.params.subId);
     if (!sub) return res.status(404).json({ message: "Subtask not found" });
 
@@ -324,14 +374,9 @@ exports.updateSubtask = async (req, res, next) => {
     if (!wasCompleted && sub.completed) {
       sub.completedBy = req.user._id;
       sub.completedAt = new Date();
-      await logAudit(
-        req.user._id,
-        req.user.name,
-        "subtask_completed",
-        task._id,
-        { title: sub.title },
-      );
+      await logAudit(req.user._id, req.user.name, "subtask_completed", task._id, { title: sub.title });
     }
+
     await task.save();
     const populatedTask = await Task.findById(task._id)
       .populate("owner", "name email")
@@ -344,15 +389,26 @@ exports.updateSubtask = async (req, res, next) => {
   }
 };
 
-// DELETE /api/tasks/:id/subtasks/:subId
+/**
+ * Removes a subtask from its parent task node.
+ * 
+ * @param {Object} req - Express request object
+ * @param {string} req.params.id - Parent Task ID
+ * @param {string} req.params.subId - Subtask ID
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
 exports.deleteSubtask = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
+
     const sub = task.subtasks.id(req.params.subId);
     if (!sub) return res.status(404).json({ message: "Subtask not found" });
+
     sub.deleteOne();
     await task.save();
+
     const populatedTask = await Task.findById(task._id)
       .populate("owner", "name email")
       .populate("assignedTo", "name email")
@@ -367,29 +423,20 @@ exports.deleteSubtask = async (req, res, next) => {
   }
 };
 
-// ── Time Blocks ─────────────────────────────────────────────────────────────
+/**
+ * Logic to detect overlapping schedule blocks for a specific user.
+ * 
+ * @private
+ */
+async function checkOverlap(ownerId, startTime, endTime, excludeTaskId, excludeBlockId) {
+  const tasks = await Task.find({ $or: [{ owner: ownerId }, { assignedTo: ownerId }] });
 
-async function checkOverlap(
-  ownerId,
-  startTime,
-  endTime,
-  excludeTaskId,
-  excludeBlockId,
-) {
-  const tasks = await Task.find({
-    $or: [{ owner: ownerId }, { assignedTo: ownerId }],
-  });
   for (const t of tasks) {
     for (const b of t.timeBlocks) {
-      if (
-        excludeTaskId &&
-        excludeBlockId &&
-        t._id.equals(excludeTaskId) &&
-        b._id.equals(excludeBlockId)
-      )
-        continue;
-      const s = new Date(b.startTime),
-        e = new Date(b.endTime);
+      if (excludeTaskId && excludeBlockId && t._id.equals(excludeTaskId) && b._id.equals(excludeBlockId)) continue;
+      
+      const s = new Date(b.startTime);
+      const e = new Date(b.endTime);
       if (new Date(startTime) < e && new Date(endTime) > s) {
         return { taskTitle: t.title, start: s, end: e };
       }
@@ -398,46 +445,31 @@ async function checkOverlap(
   return null;
 }
 
-// POST /api/tasks/:id/timeblocks
+/**
+ * Persists a new time-block engagement.
+ * Validates against scheduling collisions before persistence.
+ */
 exports.addTimeBlock = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: "Task not found" });
-    if (
-      !task.owner.equals(req.user._id) &&
-      !task.assignedTo.some((u) => u.equals(req.user._id))
-    )
+
+    if (!task.owner.equals(req.user._id) && !task.assignedTo.some((u) => u.equals(req.user._id))) {
       return res.status(403).json({ message: "Not authorised" });
+    }
 
     const { startTime, endTime } = req.body;
-    if (new Date(endTime) <= new Date(startTime))
-      return res
-        .status(400)
-        .json({ message: "endTime must be after startTime" });
+    if (new Date(endTime) <= new Date(startTime)) return res.status(400).json({ message: "endTime must be after startTime" });
 
-    const overlap = await checkOverlap(
-      req.user._id,
-      startTime,
-      endTime,
-      task._id,
-      null,
-    );
-    if (overlap)
-      return res.status(409).json({
-        message: `Overlaps with task "${overlap.taskTitle}"`,
-        overlap,
-      });
+    const overlap = await checkOverlap(req.user._id, startTime, endTime, task._id, null);
+    if (overlap) return res.status(409).json({ message: `Overlaps with task "${overlap.taskTitle}"`, overlap });
 
     task.timeBlocks.push(req.body);
     await task.save();
-    const populatedTask = await Task.findById(task._id)
-      .populate("owner", "name email")
-      .populate("assignedTo", "name email");
 
-    await logAudit(req.user._id, req.user.name, "timeblock_added", task._id, {
-      startTime,
-      endTime,
-    });
+    const populatedTask = await Task.findById(task._id).populate("owner assignedTo", "name email");
+
+    await logAudit(req.user._id, req.user.name, "timeblock_added", task._id, { startTime, endTime });
     res.json({ task: populatedTask });
   } catch (err) {
     next(err);
@@ -521,13 +553,13 @@ exports.deleteTimeBlock = async (req, res, next) => {
   }
 };
 
-// PUT /api/tasks/reorder
+/**
+ * Orchestrates task reordering via bulk-write operations.
+ */
 exports.reorderTasks = async (req, res, next) => {
   try {
     const { orders } = req.body;
-    if (!orders || !Array.isArray(orders)) {
-      return res.status(400).json({ message: "Invalid orders data" });
-    }
+    if (!orders || !Array.isArray(orders)) return res.status(400).json({ message: "Invalid orders data" });
 
     const bulkOps = orders.map((item) => ({
       updateOne: {
@@ -539,37 +571,27 @@ exports.reorderTasks = async (req, res, next) => {
     await Task.bulkWrite(bulkOps);
     res.json({ message: "Reordered" });
   } catch (err) {
-    console.error("[REORDER ERROR]", err);
     next(err);
   }
 };
 
-// ── Sharing Logic ───────────────────────────────────────────────────────────
-
-// PUT /api/tasks/:id/share
+/**
+ * Toggles a task's public availability and manages secure share tokens.
+ */
 exports.toggleTaskSharing = async (req, res, next) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    if (!task.owner.equals(req.user._id)) {
-      return res.status(403).json({ message: "Not authorised" });
-    }
+    if (!task || !task.owner.equals(req.user._id)) return res.status(403).json({ message: "Forbidden" });
 
-    const { enabled } = req.body;
-    task.isSharingEnabled = !!enabled;
-
+    task.isSharingEnabled = !!req.body.enabled;
     if (task.isSharingEnabled && !task.shareToken) {
       task.shareToken = crypto.randomBytes(16).toString("hex");
     }
 
     await task.save();
-
-    await logAudit(req.user._id, req.user.name, "task_sharing_toggled", task._id, {
-      enabled: task.isSharingEnabled,
-    });
+    await logAudit(req.user._id, req.user.name, "task_sharing_toggled", task._id, { enabled: task.isSharingEnabled });
 
     res.json({
-      message: `Sharing ${task.isSharingEnabled ? "enabled" : "disabled"}`,
       isSharingEnabled: task.isSharingEnabled,
       shareToken: task.isSharingEnabled ? task.shareToken : null,
     });
@@ -578,78 +600,46 @@ exports.toggleTaskSharing = async (req, res, next) => {
   }
 };
 
-// GET /api/tasks/public/:token
-// This is a PUBLIC endpoint (no auth middleware)
+/**
+ * Public discovery node: Retrieves minimal task metadata for invitation previews.
+ */
 exports.getPublicTask = async (req, res, next) => {
   try {
-    const task = await Task.findOne({
-      shareToken: req.params.token,
-      isSharingEnabled: true,
-    })
-      .populate("owner", "name avatar") // Only expose name and avatar
-      .select("owner createdAt"); // REMOVED: title, description, priority, etc.
+    const task = await Task.findOne({ shareToken: req.params.token, isSharingEnabled: true })
+      .populate("owner", "name avatar")
+      .select("owner createdAt title status");
 
-    if (!task) {
-      return res.status(404).json({ message: "Shared task not found or link expired" });
-    }
-
+    if (!task) return res.status(404).json({ message: "Invalid or expired link" });
     res.json({ task });
   } catch (err) {
     next(err);
   }
 };
 
-// POST /api/tasks/join/:token
+/**
+ * Finalizes the collaborative handshake: adds a user to a task node via secure token.
+ */
 exports.joinTaskByToken = async (req, res, next) => {
   try {
-    const task = await Task.findOne({
-      shareToken: req.params.token,
-      isSharingEnabled: true,
-    });
+    const task = await Task.findOne({ shareToken: req.params.token, isSharingEnabled: true });
+    if (!task) return res.status(404).json({ message: "Invalid link" });
 
-    if (!task) {
-      return res.status(404).json({ message: "Invalid or expired share link" });
-    }
-
-    // Check if user is already assigned
-    const isAssigned = task.assignedTo.some((id) => id.equals(req.user._id));
-    const isOwner = task.owner.equals(req.user._id);
-
-    if (isAssigned || isOwner) {
-      return res.status(200).json({ message: "You are already part of this task", task });
+    if (task.assignedTo.some(id => id.equals(req.user._id)) || task.owner.equals(req.user._id)) {
+      return res.status(200).json({ message: "Already joined", task });
     }
 
     task.assignedTo.push(req.user._id);
     await task.save();
 
-    // Notify the owner
+    const populatedTask = await Task.findById(task._id).populate("owner assignedTo", "name email");
     const io = req.app.get("io");
-    const note = await Notification.create({
-      recipient: task.owner,
-      sender: req.user._id,
-      type: "task_assigned", // REUSE: "Someone joined your task"
-      task: task._id,
-      content: `joined your shared task: ${task.title}`,
-    });
-    
-    io.to(task.owner.toString()).emit("notification-received", { notification: note });
 
-    // Emit standard task update to all collaborators
-    const populatedTask = await Task.findById(task._id)
-      .populate("owner", "name email")
-      .populate("assignedTo", "name email")
-      .populate("subtasks.completedBy", "name");
-
-    const allUsers = [...task.assignedTo, task.owner];
-    allUsers.forEach(uid => {
+    // Broad-spectrum notification & sync
+    [...task.assignedTo, task.owner].forEach(uid => {
       io.to(uid.toString()).emit("task-updated", { task: populatedTask });
     });
 
-    await logAudit(req.user._id, req.user.name, "task_joined_via_link", task._id, {
-      title: task.title,
-    });
-
-    res.json({ message: "Successfully joined the task", task: populatedTask });
+    res.json({ message: "Joined successfully", task: populatedTask });
   } catch (err) {
     next(err);
   }
