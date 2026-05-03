@@ -58,7 +58,7 @@
     @apply bg-bg-primary text-text-primary min-h-screen transition-colors duration-300;
   }
   * {
-    @apply box-border border-border-subtle;
+    @apply box-border border-border-subtle transition-colors duration-300;
   }
   ::-webkit-scrollbar {
     width: 6px;
@@ -215,4 +215,22 @@
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-text-primary to-text-secondary font-bold;
   }
+}
+
+/**
+ * THEME TRANSITION SYSTEM
+ * Forces a smooth transition on all theme-related properties only when toggling.
+ */
+.theme-toggling,
+.theme-toggling * {
+  transition: background-color 500ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              border-color 500ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              color 500ms cubic-bezier(0.4, 0, 0.2, 1) !important,
+              box-shadow 500ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-delay: 0s !important;
+}
+
+/* Disable transitions on initial load to prevent theme flash if script runs late */
+.no-transition * {
+  transition: none !important;
 }

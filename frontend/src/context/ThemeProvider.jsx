@@ -36,7 +36,14 @@ export const ThemeProvider = ({ children }) => {
   }, []);
 
   const toggleTheme = () => {
+    const root = window.document.documentElement;
+    root.classList.add("theme-toggling");
+    
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    
+    setTimeout(() => {
+      root.classList.remove("theme-toggling");
+    }, 500);
   };
 
   return (
