@@ -25,7 +25,7 @@ export default function AICompanion() {
         return (
             <button 
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-10 right-10 w-16 h-16 bg-accent-primary rounded-2xl flex items-center justify-center text-white shadow-blue hover:scale-110 active:scale-95 transition-all z-50 group overflow-hidden"
+                className="fixed md:bottom-10 bottom-28 md:right-10 right-6 w-16 h-16 bg-accent-primary rounded-2xl flex items-center justify-center text-white shadow-blue hover:scale-110 active:scale-95 transition-all z-50 group overflow-hidden"
             >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                 <Bot className="relative z-10 w-8 h-8 group-hover:rotate-12 transition-transform" />
@@ -39,7 +39,7 @@ export default function AICompanion() {
 
     return (
         <div 
-            className={`fixed bottom-10 right-10 w-[420px] max-w-[calc(100vw-40px)] bg-bg-secondary/80 backdrop-blur-3xl border border-border-subtle rounded-[2.5rem] shadow-premium z-50 flex flex-col transition-all duration-500 ease-out ${
+            className={`fixed md:bottom-10 bottom-28 md:right-10 right-6 w-[420px] max-w-[calc(100vw-40px)] bg-bg-secondary/80 backdrop-blur-3xl border border-border-subtle rounded-[2.5rem] shadow-premium z-50 flex flex-col transition-all duration-500 ease-out ${
                 isMinimized ? 'h-20' : 'h-[650px] max-h-[80vh]'
             }`}
         >
