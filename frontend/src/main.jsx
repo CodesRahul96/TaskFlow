@@ -6,7 +6,7 @@ import "./index.css";
 import { ThemeProvider } from "./context/ThemeProvider.jsx";
 
 console.log(
-  "%c🚀 TaskFlow | Engineered by Vaishnavi",
+  "%c🚀 TaskFlow | Engineered by CodesRahul",
   "color: #6366f1; font-weight: bold; font-size: 14px; background: #0f0f1a; padding: 4px 8px; border-radius: 4px;"
 );
 console.log("%cSystem integrity verified. Multi-node sync active.", "color: #a3a3a3; font-style: italic;");

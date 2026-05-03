@@ -237,7 +237,7 @@ export default function Layout() {
            <div className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2">
               <span>Hand-engineered with</span>
               <div className="w-1.5 h-1.5 rounded-full bg-accent-primary animate-pulse" />
-              <span>by Sri Vaishnavi</span>
+              <span>by CodesRahul</span>
            </div>
         </footer>
 

@@ -54,7 +54,7 @@ The workspace is hardened against modern attack vectors:
 ---
 
 ## 🏗️ Engineered by
-**Kollimarla Sri Vaishnavi**  
-*MSc Software Engineering | University of Leicester*  
+**CodesRahul**  
+*Full Stack Developer & Systems Engineer*  
 
 *This project is a demonstration of secure agile architecture and industrial-grade software engineering practices.* 🚀

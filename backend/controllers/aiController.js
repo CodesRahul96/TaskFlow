@@ -84,9 +84,9 @@ const NEURAL_MATRIX = [
         answer: "Recommendation: Utilize 25-minute 'Deep Work' sprints with 5-minute 'Neural Reset' breaks to maintain optimal focus levels."
     },
     {
-        keywords: ["who built", "who made", "vaishnavi", "engineer"],
+        keywords: ["who built", "who made", "codesrahul", "engineer"],
         category: "SYSTEM_CREDITS",
-        answer: "taskflow is an industrial-grade workspace engineered by Vaishnavi. It was built for high-performance teams who demand secure, real-time synchronization."
+        answer: "taskflow is an industrial-grade workspace engineered by CodesRahul. It was built for high-performance teams who demand secure, real-time synchronization."
     },
     {
         keywords: ["hi", "hello", "hey", "who are you"],
