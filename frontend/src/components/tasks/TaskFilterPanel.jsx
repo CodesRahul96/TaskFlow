@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   SortAsc, SortDesc, X, Calendar, Clock, Tag,
   AlertCircle, CheckCircle, Circle, Zap, ChevronDown,
@@ -68,7 +69,7 @@ const SortDirButton = ({ dir, current, onClick }) => (
 
 // ── Main Component ──────────────────────────────────────────────────────────
 
-const TaskFilterPanel = memo(({ filters, setFilters, allTasks }) => {
+const TaskFilterPanel = memo(({ filters, setFilters, allTasks, onClose }) => {
   const [collapsed, setCollapsed] = useState({
     sort: false,
     quick: false,
@@ -106,16 +107,26 @@ const TaskFilterPanel = memo(({ filters, setFilters, allTasks }) => {
     });
   };
 
-  return (
-    <div
-      className="filter-panel mt-3 p-4 rounded-2xl border border-border-subtle animate-filter-in max-h-[60vh] overflow-y-auto no-scrollbar shadow-premium"
-      style={{
-        background: 'rgba(var(--surface-1), 0.95)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(var(--accent-primary), 0.06)',
-      }}
-    >
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 animate-fade-in" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)' }}>
+      {/* Click outside to close */}
+      <div className="absolute inset-0" onClick={onClose} />
+      
+      {/* Modal Content */}
+      <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border border-border-subtle shadow-premium animate-filter-in bg-surface-1 overflow-hidden">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 md:p-5 border-b border-border-subtle bg-surface-2/30 flex-shrink-0">
+          <h2 className="font-bold text-sm tracking-widest uppercase text-text-primary flex items-center gap-2">
+            <Filter size={16} className="text-accent-primary"/> Advanced Filters
+          </h2>
+          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-lg transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="p-4 md:p-5 overflow-y-auto no-scrollbar flex-1" style={{ background: 'rgba(var(--surface-1), 0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
       {/* ── SORT ────────────────────────────────────────────────────────────── */}
       <div className="mb-4">
         <SectionHeader icon={SortAsc} label="Sort By" collapsed={collapsed.sort} onToggle={() => toggleSection('sort')} />
@@ -329,7 +340,15 @@ const TaskFilterPanel = memo(({ filters, setFilters, allTasks }) => {
           </div>
         </>
       )}
-    </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-border-subtle bg-surface-2/50 flex justify-end flex-shrink-0">
+           <button onClick={onClose} className="btn-primary py-2 px-6 w-full md:w-auto">Apply Filters</button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 });
 

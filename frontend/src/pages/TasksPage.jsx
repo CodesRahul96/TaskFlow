@@ -358,6 +358,7 @@ export default function TasksPage() {
               filters={filters}
               setFilters={setFilters}
               allTasks={localTasks}
+              onClose={() => setShowFilters(false)}
             />
           )}
         </div>
