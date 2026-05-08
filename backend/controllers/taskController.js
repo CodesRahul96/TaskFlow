@@ -19,8 +19,13 @@ const crypto = require("crypto");
  */
 exports.getTasks = async (req, res, next) => {
   try {
-    const { status, priority, tag, search, sort = "order" } = req.query;
-    
+    const {
+      status, priority, tag, tags, search,
+      sort = "order", sortDir = "asc",
+      dateFrom, dateTo, timeBlockDate,
+      overdue, dueToday, noDeadline,
+    } = req.query;
+
     // Authorization filter: owner or assignee
     const filter = {
       $or: [{ owner: req.user._id }, { assignedTo: req.user._id }],
@@ -29,37 +34,95 @@ exports.getTasks = async (req, res, next) => {
     // Ensure unique result set by aggregating potential overlaps
     const taskIds = await Task.find(filter).distinct("_id");
     const uniqueFilter = { _id: { $in: taskIds } };
-    
-    // Apply optional business logic filters
+
+    // ── Standard field filters ───────────────────────────────────────────────
     if (status) uniqueFilter.status = status;
     if (priority) uniqueFilter.priority = priority;
-    if (tag) uniqueFilter.tags = tag;
+
+    // Tag filters: single tag (legacy) or multi-tag comma-separated
+    if (tags) {
+      const tagList = tags.split(",").map((t) => t.trim()).filter(Boolean);
+      if (tagList.length > 0) uniqueFilter.tags = { $in: tagList };
+    } else if (tag) {
+      uniqueFilter.tags = tag;
+    }
+
+    // Search across title
     if (search) uniqueFilter.title = { $regex: search, $options: "i" };
 
+    // ── Deadline date range ──────────────────────────────────────────────────
+    if (dateFrom || dateTo) {
+      uniqueFilter.deadline = {};
+      if (dateFrom) uniqueFilter.deadline.$gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        uniqueFilter.deadline.$lte = end;
+      }
+    }
+
+    // ── Quick filters ────────────────────────────────────────────────────────
+    if (overdue === "1") {
+      uniqueFilter.deadline = { ...(uniqueFilter.deadline || {}), $lt: new Date() };
+      uniqueFilter.status = { $ne: "completed" };
+    }
+    if (dueToday === "1") {
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+      uniqueFilter.deadline = { $gte: todayStart, $lte: todayEnd };
+    }
+    if (noDeadline === "1") {
+      uniqueFilter.deadline = { $exists: false };
+    }
+
+    // ── Time Block Date filter ───────────────────────────────────────────────
+    // Will be applied post-fetch since timeBlocks is an embedded array
+    const filterByTimeBlockDate = timeBlockDate ? new Date(timeBlockDate) : null;
+
+    // ── Sorting ──────────────────────────────────────────────────────────────
     let tasks;
-    // Handle complex priority-based sorting vs standard field sorting
-    if (sort === "priority" || sort === "-priority") {
+    const dir = sortDir === "desc" ? -1 : 1;
+
+    if (sort === "priority") {
       const allTasks = await Task.find(uniqueFilter)
         .populate("owner", "name email")
         .populate("assignedTo", "name email");
-      
-      const dir = sort.startsWith("-") ? -1 : 1;
+
       const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
-      
       tasks = allTasks.sort(
-        (a, b) =>
-          dir *
-          ((PRIORITY_ORDER[a.priority] ?? 99) -
-            (PRIORITY_ORDER[b.priority] ?? 99)),
+        (a, b) => dir * ((PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99))
       );
-    } else {
-      const allowedSorts = ["-createdAt", "createdAt", "-deadline", "deadline", "order"];
-      const sortField = allowedSorts.includes(sort) ? sort : "-createdAt";
-      
-      tasks = await Task.find(uniqueFilter)
-        .sort(sortField)
+    } else if (sort === "title") {
+      const allTasks = await Task.find(uniqueFilter)
         .populate("owner", "name email")
         .populate("assignedTo", "name email");
+      tasks = allTasks.sort((a, b) => dir * a.title.localeCompare(b.title));
+    } else {
+      // Field-based MongoDB sort
+      const fieldMap = {
+        createdAt: "createdAt",
+        deadline:  "deadline",
+        order:     "order",
+        updatedAt: "updatedAt",
+      };
+      const sortField = fieldMap[sort] || "order";
+      const mongoSort = { [sortField]: dir };
+
+      tasks = await Task.find(uniqueFilter)
+        .sort(mongoSort)
+        .populate("owner", "name email")
+        .populate("assignedTo", "name email");
+    }
+
+    // ── Post-fetch: Time Block Date filter ───────────────────────────────────
+    if (filterByTimeBlockDate) {
+      const dayStart = new Date(filterByTimeBlockDate); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd   = new Date(filterByTimeBlockDate); dayEnd.setHours(23, 59, 59, 999);
+      tasks = tasks.filter((t) =>
+        (t.timeBlocks || []).some(
+          (b) => new Date(b.startTime) >= dayStart && new Date(b.startTime) <= dayEnd
+        )
+      );
     }
 
     res.json({ tasks });

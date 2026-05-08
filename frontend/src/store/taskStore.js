@@ -59,8 +59,17 @@ const useTaskStore = create((set, get) => ({
     status: '',
     priority: '',
     tag: '',
+    tags: [],            // multi-select tag filter
+    category: '',        // category text filter
     search: '',
     sort: 'order',
+    sortDir: 'asc',      // 'asc' | 'desc'
+    dateFrom: '',        // ISO date string — deadline range start
+    dateTo: '',          // ISO date string — deadline range end
+    timeBlockDate: '',   // ISO date string — tasks with time blocks on this day
+    overdue: false,      // quick filter: overdue tasks
+    dueToday: false,     // quick filter: due today tasks
+    noDeadline: false,   // quick filter: tasks with no deadline
   },
 
   /**
@@ -85,8 +94,16 @@ const useTaskStore = create((set, get) => ({
       if (filters.status) params.append('status', filters.status);
       if (filters.priority) params.append('priority', filters.priority);
       if (filters.tag) params.append('tag', filters.tag);
+      if (filters.tags?.length) params.append('tags', filters.tags.join(','));
       if (filters.search) params.append('search', filters.search);
       if (filters.sort) params.append('sort', filters.sort);
+      if (filters.sortDir) params.append('sortDir', filters.sortDir);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      if (filters.timeBlockDate) params.append('timeBlockDate', filters.timeBlockDate);
+      if (filters.overdue) params.append('overdue', '1');
+      if (filters.dueToday) params.append('dueToday', '1');
+      if (filters.noDeadline) params.append('noDeadline', '1');
 
       const { data } = await api.get(`/tasks?${params}`);
       set({ tasks: deduplicateTasks(data.tasks), loading: false });
