@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import useAuthStore from "../store/authStore";
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
+  const { user } = useAuthStore();
   const [theme, setTheme] = useState(() => {
-    // Check localStorage or system preference
     const saved = localStorage.getItem("theme");
     if (saved) return saved;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -14,26 +15,35 @@ export const ThemeProvider = ({ children }) => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     
-    // Apply the current theme class
     root.classList.add(theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  // Sync with user preference or system
+  useEffect(() => {
+    if (user) {
+      if (user.theme) {
+        setTheme(user.theme);
+      } else {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        setTheme(systemTheme);
+      }
+    }
+  }, [user, user?.theme]);
 
   // Handle system preference changes automatically
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = (e) => {
-      // Only auto-update if the user hasn't set a manual preference
-      // In this version, we prioritize "System" if the user hasn't toggled.
-      // For strictly "auto adapt", we listen to this.
-      if (!localStorage.getItem("theme")) {
+      // Only update if not logged in or if user theme is null (system)
+      if (!user || user.theme === null) {
         setTheme(e.matches ? "dark" : "light");
       }
     };
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+  }, [user, user?.theme]);
 
   const toggleTheme = () => {
     const root = window.document.documentElement;

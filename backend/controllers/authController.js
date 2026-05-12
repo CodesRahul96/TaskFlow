@@ -333,10 +333,17 @@ exports.getMe = async (req, res) => {
  */
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { name, avatar } = req.body;
+    const { name, avatar, showChatbot, theme } = req.body;
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (showChatbot !== undefined) updateData.showChatbot = showChatbot;
+    if (theme !== undefined) updateData.theme = theme;
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name, avatar },
+      updateData,
       { new: true, runValidators: true },
     );
     res.json({ user });

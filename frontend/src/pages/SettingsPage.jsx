@@ -92,6 +92,7 @@ export default function SettingsPage() {
   const tabs = [
     { key: 'profile', label: 'Identity' },
     { key: 'security', label: 'Security' },
+    { key: 'preferences', label: 'Preferences' },
     { key: 'friends', label: 'Network' },
   ];
 
@@ -321,6 +322,60 @@ export default function SettingsPage() {
               >
                 {loading ? 'Processing...' : user?.hasPassword ? 'Update Password' : 'Set Password'}
               </button>
+            </div>
+          </div>
+        )}
+
+        {tab === 'preferences' && (
+          <div className="card md:p-10 space-y-10 animate-fade-in">
+            <div className="pb-6 border-b border-border-subtle/50">
+              <h2 className="font-display font-black text-2xl text-text-primary tracking-tight">Preferences</h2>
+              <p className="text-text-muted text-xs font-medium mt-1 leading-relaxed">Customize your workspace experience.</p>
+            </div>
+
+            {/* Chatbot Toggle */}
+            <div className="flex items-center justify-between gap-6">
+              <div>
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">AI Companion</h3>
+                <p className="text-text-muted text-xs font-medium mt-1">Show or hide the AI chatbot in your workspace.</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={user?.showChatbot !== false}
+                  onChange={(e) => updateProfile({ showChatbot: e.target.checked })}
+                />
+                <div className="w-11 h-6 bg-surface-2 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary"></div>
+              </label>
+            </div>
+
+            {/* Theme Selection */}
+            <div className="flex items-center justify-between gap-6">
+              <div>
+                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Workspace Theme</h3>
+                <p className="text-text-muted text-xs font-medium mt-1">Choose between light, dark, or system default.</p>
+              </div>
+              <div className="flex bg-surface-2 rounded-xl p-1 border border-border-subtle/50">
+                <button 
+                  onClick={() => updateProfile({ theme: 'light' })}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${user?.theme === 'light' ? 'bg-surface-1 shadow-sm text-accent-primary' : 'text-text-muted hover:text-text-primary'}`}
+                >
+                  Light
+                </button>
+                <button 
+                  onClick={() => updateProfile({ theme: 'dark' })}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${user?.theme === 'dark' ? 'bg-surface-1 shadow-sm text-accent-primary' : 'text-text-muted hover:text-text-primary'}`}
+                >
+                  Dark
+                </button>
+                <button 
+                  onClick={() => updateProfile({ theme: null })}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${user?.theme === null ? 'bg-surface-1 shadow-sm text-accent-primary' : 'text-text-muted hover:text-text-primary'}`}
+                >
+                  System
+                </button>
+              </div>
             </div>
           </div>
         )}

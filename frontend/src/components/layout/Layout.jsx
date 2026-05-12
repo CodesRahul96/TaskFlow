@@ -242,7 +242,7 @@ export default function Layout() {
         </footer>
 
         <BottomNav />
-        <AICompanion />
+        {user?.showChatbot !== false && <AICompanion />}
       </div>
     </div>
   );

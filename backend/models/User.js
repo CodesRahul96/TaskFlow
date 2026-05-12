@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema({
   mfaSecret: { type: String, select: false },
   googleId: { type: String, sparse: true, unique: true },
   tokenVersion: { type: Number, default: 0 },
+  showChatbot: { type: Boolean, default: true },
+  theme: { type: String, default: null }, // null means auto/system
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
