@@ -219,7 +219,18 @@ export default function Layout() {
              <span className="font-display font-black text-lg text-text-primary tracking-tight">TaskFlow</span>
           </div>
           <div className="flex items-center gap-4">
-            {!isGuest && <NotificationCenter />}
+            {!isGuest && (
+              <>
+                <NotificationCenter />
+                <button
+                  onClick={logout}
+                  className="text-text-muted hover:text-danger transition-all p-1.5 rounded-xl hover:bg-danger/10 active:scale-95"
+                  title="Terminate Session"
+                >
+                  <LogOut size={16} />
+                </button>
+              </>
+            )}
             <div className="w-8 h-8 rounded-xl bg-surface-1 border border-border-default flex items-center justify-center text-[10px] font-black text-text-muted">
               {initials}
             </div>
