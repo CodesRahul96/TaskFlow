@@ -190,7 +190,7 @@ exports.verifyLogin = async (req, res, next) => {
     res.cookie("tf_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", 
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000, 
     });
 
@@ -291,7 +291,7 @@ exports.validateMFA = async (req, res, next) => {
     res.cookie("tf_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -427,7 +427,7 @@ exports.loginWithPassword = async (req, res, next) => {
     res.cookie("tf_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
@@ -488,7 +488,7 @@ exports.googleAuth = async (req, res, next) => {
     res.cookie("tf_token", authToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
