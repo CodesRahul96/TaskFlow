@@ -15,9 +15,9 @@ const safeParse = (key) => {
 
 const useAuthStore = create((set, get) => ({
   user:    safeParse('tf_user'),
-  token:   null,
+  token:   localStorage.getItem('tf_token') === 'undefined' ? (localStorage.removeItem('tf_token'), null) : localStorage.getItem('tf_token'),
   loading: false,
-  isGuest: !localStorage.getItem('tf_user'),
+  isGuest: !localStorage.getItem('tf_token') || localStorage.getItem('tf_token') === 'undefined',
   isOnline: navigator.onLine,
 
   setOnline: (status) => set({ isOnline: status }),
@@ -79,8 +79,9 @@ const useAuthStore = create((set, get) => ({
         return { mfaRequired: true, mfaToken: data.mfaToken };
       }
 
+      localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: null, loading: false, isGuest: false });
+      set({ user: data.user, token: data.token, loading: false, isGuest: false });
       toast.success(`Welcome back, ${data.user.name}!`);
       get()._syncGuestIfNeeded();
       return { success: true };
@@ -124,8 +125,9 @@ const useAuthStore = create((set, get) => ({
         return { mfaRequired: true, mfaToken: data.mfaToken };
       }
 
+      localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: null, loading: false, isGuest: false });
+      set({ user: data.user, token: data.token, loading: false, isGuest: false });
       toast.success(`Welcome back, ${data.user.name}!`);
       get()._syncGuestIfNeeded();
       return { success: true };
@@ -194,8 +196,9 @@ const useAuthStore = create((set, get) => ({
         return { mfaRequired: true, mfaToken: data.mfaToken };
       }
 
+      localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: null, loading: false, isGuest: false });
+      set({ user: data.user, token: data.token, loading: false, isGuest: false });
       toast.success(`Welcome back, ${data.user.name}!`);
       get()._syncGuestIfNeeded();
       return { success: true };
@@ -213,6 +216,7 @@ const useAuthStore = create((set, get) => ({
     } catch (err) {
       console.error("Logout error:", err);
     }
+    localStorage.removeItem('tf_token');
     localStorage.removeItem('tf_user');
     set({ user: null, token: null, isGuest: true });
     toast.success('Logged out');
@@ -260,8 +264,9 @@ const useAuthStore = create((set, get) => ({
     set({ loading: true });
     try {
       const { data } = await api.post('/auth/mfa/validate', { mfaToken, code, sessionId });
+      localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: null, loading: false, isGuest: false });
+      set({ user: data.user, token: data.token, loading: false, isGuest: false });
       toast.success('MFA verified! Welcome back.');
       return { success: true };
     } catch (err) {
