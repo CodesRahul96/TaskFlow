@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Zap, Mail, ArrowRight, ShieldAlert, Lock, Wand2 } from 'lucide-react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useGoogleReCaptcha, GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../store/authStore';
 import { useSocket } from '../hooks/useSocket';
 import Loader from '../components/ui/Loader';
 import toast from 'react-hot-toast';
 
-export default function Login() {
+function LoginContent() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isMagicLinkSent, setIsMagicLinkSent] = useState(false);
@@ -325,5 +325,14 @@ export default function Login() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={recaptchaKey ? recaptchaKey : "MISSING_KEY"}>
+      <LoginContent />
+    </GoogleReCaptchaProvider>
   );
 }

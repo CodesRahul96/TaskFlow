@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Zap, Mail, User, ArrowRight, ShieldCheck, ShieldAlert, Lock, Wand2 } from 'lucide-react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useGoogleReCaptcha, GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import { GoogleLogin } from '@react-oauth/google';
 import useAuthStore from '../store/authStore';
 import Loader from '../components/ui/Loader';
 import toast from 'react-hot-toast';
 
-export default function Register() {
+function RegisterContent() {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -232,5 +232,14 @@ export default function Register() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Register() {
+  const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  return (
+    <GoogleReCaptchaProvider reCaptchaKey={recaptchaKey ? recaptchaKey : "MISSING_KEY"}>
+      <RegisterContent />
+    </GoogleReCaptchaProvider>
   );
 }
