@@ -111,7 +111,7 @@ export default function NotificationCenter() {
       </button>
 
       {showDropdown && (
-        <div className="absolute top-full right-0 mt-3 w-[360px] max-h-[500px] bg-bg-secondary border border-border-subtle rounded-2xl shadow-premium z-50 overflow-hidden flex flex-col animate-slide-up">
+        <div className="fixed md:absolute top-[70px] md:top-full left-4 md:left-auto right-4 md:right-0 mt-3 w-auto md:w-[360px] max-h-[500px] bg-bg-secondary border border-border-subtle rounded-2xl shadow-premium z-50 overflow-hidden flex flex-col animate-slide-up">
           <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between bg-surface-1/10">
             <div>
               <h4 className="text-xs font-black uppercase tracking-[0.2em] text-text-primary">Alert Center</h4>
