@@ -231,9 +231,13 @@ export default function Layout() {
                 </button>
               </>
             )}
-            <div className="w-8 h-8 rounded-xl bg-surface-1 border border-border-default flex items-center justify-center text-[10px] font-black text-text-muted">
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-8 h-8 rounded-xl bg-surface-1 border border-border-default flex items-center justify-center text-[10px] font-black text-text-muted hover:border-accent-primary/50 transition-all active:scale-95"
+              title="View Settings"
+            >
               {initials}
-            </div>
+            </button>
           </div>
         </header>
 
