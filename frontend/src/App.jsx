@@ -44,23 +44,23 @@ function PageLoader() {
  * Route Orchestrator: Manages state-bound access control and synchronization hooks.
  */
 function AppRoutes() {
-  const { token, isGuest, isOnline, setOnline } = useAuthStore();
+  const { user, isGuest, isOnline, setOnline } = useAuthStore();
   const { joinTaskByToken } = useTaskStore();
   
   // Initialize Socket.IO bridge upon identity verification
-  useSocket(!!token);
+  useSocket(!!user);
 
   /**
    * Post-Login Handshake: Consumes pending invitations stored in the local vault.
    */
   useEffect(() => {
-    if (token && !isGuest) {
+    if (user && !isGuest) {
       const pendingInvite = localStorage.getItem('tf_pending_invite');
       if (pendingInvite) {
         joinTaskByToken(pendingInvite);
       }
     }
-  }, [token, isGuest, joinTaskByToken]);
+  }, [user, isGuest, joinTaskByToken]);
 
   /**
    * Resilience Protocol: Monitors connectivity state for local-merging transitions.
@@ -86,7 +86,7 @@ function AppRoutes() {
     );
   }
 
-  const isAuth = !!token;
+  const isAuth = !!user;
 
   return (
     <Suspense fallback={<PageLoader />}>

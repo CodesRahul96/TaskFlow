@@ -9,9 +9,12 @@ import toast from 'react-hot-toast';
  * Central hub for identity management, security protocols, and collaborator network.
  */
 export default function SettingsPage() {
-  const { user, updateProfile, setupMFA, verifyMFASetup, disableMFA } = useAuthStore();
+  const { user, updateProfile, setupMFA, verifyMFASetup, disableMFA, setPassword, refreshUser } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
   const [loading, setLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [mfaSetupData, setMfaSetupData] = useState(null); 
   const [mfaCode, setMfaCode] = useState('');
   const [searchQ, setSearchQ] = useState('');
@@ -22,6 +25,10 @@ export default function SettingsPage() {
   useEffect(() => {
     if (tab === 'friends') loadFriends();
   }, [tab]);
+
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
   const handleProfileSave = async () => {
     setLoading(true);
@@ -237,6 +244,84 @@ export default function SettingsPage() {
                  </button>
               </div>
             )}
+
+            {/* Password Management Section */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-6 border-t border-border-subtle/50">
+              <div>
+                <h2 className="font-display font-black text-2xl text-text-primary tracking-tight">Account Password</h2>
+                <p className="text-text-muted text-xs font-medium mt-1 leading-relaxed">
+                  {user?.hasPassword ? 'Change your current password.' : 'Set a password to login with email/password.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-w-md">
+              {user?.hasPassword && (
+                <div>
+                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-3">Current Password</label>
+                  <div className="relative group">
+                    <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+                    <input 
+                      type="password" 
+                      className="input-field pl-12 font-medium" 
+                      value={currentPassword} 
+                      onChange={e => setCurrentPassword(e.target.value)} 
+                      placeholder="Enter current password" 
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-3">
+                  {user?.hasPassword ? 'New Password' : 'Password'}
+                </label>
+                <div className="relative group">
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+                  <input 
+                    type="password" 
+                    className="input-field pl-12 font-medium" 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)} 
+                    placeholder="Min. 6 characters" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] mb-3">Confirm Password</label>
+                <div className="relative group">
+                  <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
+                  <input 
+                    type="password" 
+                    className="input-field pl-12 font-medium" 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)} 
+                    placeholder="Repeat new password" 
+                  />
+                </div>
+              </div>
+
+              <button 
+                onClick={async () => {
+                  if (newPassword.length < 6) return toast.error('Password too short');
+                  if (newPassword !== confirmPassword) return toast.error('Passwords do not match');
+                  if (user?.hasPassword && !currentPassword) return toast.error('Current password is required');
+                  setLoading(true);
+                  const res = await setPassword(newPassword, currentPassword);
+                  if (res.success) {
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setCurrentPassword('');
+                  }
+                  setLoading(false);
+                }} 
+                disabled={loading || !newPassword || !confirmPassword || (user?.hasPassword && !currentPassword)} 
+                className="btn-primary w-full py-4 font-bold uppercase tracking-widest text-[11px] shadow-blue mt-2"
+              >
+                {loading ? 'Processing...' : user?.hasPassword ? 'Update Password' : 'Set Password'}
+              </button>
+            </div>
           </div>
         )}
 

@@ -219,7 +219,7 @@ function applyClientFilters(tasks, filters) {
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function TasksPage() {
   const { tasks, loading, fetchTasks, updateTask, deleteTask, setSelectedTask, selectedTask, filters, setFilters } = useTaskStore();
-  const { isGuest, token } = useAuthStore();
+  const { isGuest, user } = useAuthStore();
   const [showModal, setShowModal] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -241,12 +241,12 @@ export default function TasksPage() {
 
   // Sync guest tasks if just logged in
   useEffect(() => {
-    if (token) {
+    if (user && !isGuest) {
       const { syncGuestTasks } = useTaskStore.getState();
       const guestTasks = JSON.parse(localStorage.getItem('tf_guest_tasks') || '[]');
       if (guestTasks.length > 0) syncGuestTasks();
     }
-  }, [token]);
+  }, [user, isGuest]);
 
   const handleDragEnd = (event) => {
     const { active, over } = event;

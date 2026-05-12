@@ -15,9 +15,9 @@ const safeParse = (key) => {
 
 const useAuthStore = create((set, get) => ({
   user:    safeParse('tf_user'),
-  token:   localStorage.getItem('tf_token') === 'undefined' ? (localStorage.removeItem('tf_token'), null) : localStorage.getItem('tf_token'),
+  token:   null,
   loading: false,
-  isGuest: !localStorage.getItem('tf_token') || localStorage.getItem('tf_token') === 'undefined',
+  isGuest: !localStorage.getItem('tf_user'),
   isOnline: navigator.onLine,
 
   setOnline: (status) => set({ isOnline: status }),
@@ -67,6 +67,97 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
+   * Login with Email and Password
+   */
+  loginWithPassword: async (email, password, captchaToken, sessionId) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/login-password', { email, password, captchaToken, sessionId });
+      
+      if (data.mfaRequired) {
+        set({ loading: false });
+        return { mfaRequired: true, mfaToken: data.mfaToken };
+      }
+
+      localStorage.setItem('tf_user', JSON.stringify(data.user));
+      set({ user: data.user, token: null, loading: false, isGuest: false });
+      toast.success(`Welcome back, ${data.user.name}!`);
+      get()._syncGuestIfNeeded();
+      return { success: true };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Login failed';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  /**
+   * Register with Email and Password
+   */
+  registerWithPassword: async (name, email, password, captchaToken) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/register-password', { name, email, password, captchaToken });
+      set({ loading: false });
+      toast.success(data.message || 'Registration successful!');
+      return { success: true, message: data.message };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Registration failed';
+      toast.error(msg);
+      const errors = err.response?.data?.errors;
+      return { success: false, message: msg, errors };
+    }
+  },
+
+  /**
+   * Google OAuth Login/Registration
+   */
+  googleLogin: async (idToken, sessionId) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/google-auth', { idToken, sessionId });
+      
+      if (data.mfaRequired) {
+        set({ loading: false });
+        return { mfaRequired: true, mfaToken: data.mfaToken };
+      }
+
+      localStorage.setItem('tf_user', JSON.stringify(data.user));
+      set({ user: data.user, token: null, loading: false, isGuest: false });
+      toast.success(`Welcome back, ${data.user.name}!`);
+      get()._syncGuestIfNeeded();
+      return { success: true };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Google authentication failed';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  /**
+   * Set or Change Password
+   */
+  setPassword: async (newPassword, currentPassword) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/set-password', { newPassword, currentPassword });
+      set({ loading: false });
+      toast.success(data.message || 'Password updated successfully');
+      await get().refreshUser();
+      return { success: true };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Failed to update password';
+      toast.error(msg);
+      const errors = err.response?.data?.errors;
+      return { success: false, message: msg, errors };
+    }
+  },
+
+  /**
    * Verifies the user's email address.
    * Completes the registration loop using a verification token.
    * @param {string} token
@@ -103,9 +194,8 @@ const useAuthStore = create((set, get) => ({
         return { mfaRequired: true, mfaToken: data.mfaToken };
       }
 
-      localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: data.token, loading: false, isGuest: false });
+      set({ user: data.user, token: null, loading: false, isGuest: false });
       toast.success(`Welcome back, ${data.user.name}!`);
       get()._syncGuestIfNeeded();
       return { success: true };
@@ -123,7 +213,6 @@ const useAuthStore = create((set, get) => ({
     } catch (err) {
       console.error("Logout error:", err);
     }
-    localStorage.removeItem('tf_token');
     localStorage.removeItem('tf_user');
     set({ user: null, token: null, isGuest: true });
     toast.success('Logged out');
@@ -171,9 +260,8 @@ const useAuthStore = create((set, get) => ({
     set({ loading: true });
     try {
       const { data } = await api.post('/auth/mfa/validate', { mfaToken, code, sessionId });
-      localStorage.setItem('tf_token', data.token);
       localStorage.setItem('tf_user', JSON.stringify(data.user));
-      set({ user: data.user, token: data.token, loading: false, isGuest: false });
+      set({ user: data.user, token: null, loading: false, isGuest: false });
       toast.success('MFA verified! Welcome back.');
       return { success: true };
     } catch (err) {

@@ -13,7 +13,17 @@ const userSchema = new mongoose.Schema({
   loginTokenExpires: { type: Date },
   mfaEnabled: { type: Boolean, default: false },
   mfaSecret: { type: String, select: false },
-}, { timestamps: true });
+  googleId: { type: String, sparse: true, unique: true },
+  tokenVersion: { type: Number, default: 0 },
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+userSchema.virtual("hasPassword").get(function () {
+  return !!this.password;
+});
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -28,6 +38,7 @@ userSchema.methods.comparePassword = function (plain) {
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.mfaSecret;
   return obj;
 };
 

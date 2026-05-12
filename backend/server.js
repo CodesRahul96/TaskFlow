@@ -47,6 +47,7 @@ const io = new Server(server, {
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -54,16 +55,25 @@ app.use(
           "'self'", 
           "'unsafe-inline'", 
           "https://www.google.com/recaptcha/", 
-          "https://www.gstatic.com/recaptcha/"
+          "https://www.gstatic.com/recaptcha/",
+          "https://accounts.google.com/gsi/client"
         ],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com/"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https://*"],
         connectSrc: ["'self'", "https://*", "http://localhost:*", "ws:", "wss:"],
-        frameSrc: ["'self'", "https://www.google.com/recaptcha/"],
+        frameSrc: ["'self'", "https://www.google.com/recaptcha/", "https://accounts.google.com/"],
         objectSrc: ["'none'"]
       },
     },
+  })
+);
+
+// Enable CORS for frontend
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
   })
 );
 
@@ -90,10 +100,10 @@ const globalLimiter = rateLimit({
 });
 app.use("/api/", globalLimiter);
 
-// Auth Guard: Brute-force mitigation
+// Auth Guard: Brute-force mitigation (increased for development)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, 
+  max: 100, 
   message: { message: "Security Block: Too many identity verification attempts." },
 });
 app.use("/api/auth", authLimiter);
@@ -105,13 +115,6 @@ const aiLimiter = rateLimit({
   message: { message: "Neural Limit Reached: Gateway recalibrating. Please wait." },
 });
 app.use("/api/ai", aiLimiter);
-
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  }),
-);
 
 /**
  * INTERFACE EXPOSURE: Expose IO engine to controllers

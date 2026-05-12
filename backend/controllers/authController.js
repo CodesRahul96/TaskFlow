@@ -8,6 +8,9 @@ const speakeasy = require("speakeasy");
 const QRCode = require("qrcode");
 const verifyRecaptcha = require("../utils/recaptcha");
 const logAudit = require("../utils/audit");
+const { OAuth2Client } = require("google-auth-library");
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * Authentication Controller
@@ -166,7 +169,7 @@ exports.verifyLogin = async (req, res, next) => {
     const user = await User.findOne({
       loginToken: token,
       loginTokenExpires: { $gt: Date.now() },
-    });
+    }).select("+password");
 
     if (!user) return res.status(400).json({ message: "Invalid or expired login link" });
 
@@ -181,7 +184,7 @@ exports.verifyLogin = async (req, res, next) => {
       return res.json({ mfaRequired: true, mfaToken });
     }
 
-    const authToken = generateToken(user._id);
+    const authToken = generateToken(user._id, user.tokenVersion);
 
     // Secure Session Orchestration: HttpOnly cookie deployment
     res.cookie("tf_token", authToken, {
@@ -283,7 +286,7 @@ exports.validateMFA = async (req, res, next) => {
 
     if (!verified) return res.status(400).json({ message: "Invalid MFA code" });
 
-    const authToken = generateToken(user._id);
+    const authToken = generateToken(user._id, user.tokenVersion);
 
     res.cookie("tf_token", authToken, {
       httpOnly: true,
@@ -342,3 +345,191 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Register with Email and Password
+ */
+exports.registerWithPassword = async (req, res, next) => {
+  try {
+    const { name, email, password, captchaToken } = req.body;
+
+    const { success, score } = await verifyRecaptcha(captchaToken);
+    if (!success) {
+      return res.status(400).json({ message: "Security verification failed.", score });
+    }
+
+    if (await User.findOne({ email })) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      verificationToken,
+    });
+
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    const message = `Welcome to taskflow, ${name}!\n\nPlease verify your email by clicking the link below:\n\n${verifyUrl}`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `Verify your taskflow account`,
+        message,
+        html: `<h1>Welcome!</h1><p>Please click <a href="${verifyUrl}">here</a> to verify your account.</p>`,
+      });
+      res.status(201).json({ message: "Registration successful! Please check your email to verify your account." });
+      await logAudit(user._id, user.name, "user_registered", null, { email: user.email, method: "password" });
+    } catch (err) {
+      user.verificationToken = undefined;
+      await user.save();
+      return res.status(500).json({ message: "Error sending verification email. Please try again later." });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Login with Email and Password
+ */
+exports.loginWithPassword = async (req, res, next) => {
+  try {
+    const { email, password, captchaToken, sessionId } = req.body;
+
+    const { success, score } = await verifyRecaptcha(captchaToken);
+    if (!success) {
+      return res.status(400).json({ message: "Security verification failed.", score });
+    }
+
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) return res.status(401).json({ message: "Invalid email or password" });
+
+    // Users who registered via Google or Magic link might not have a password
+    if (!user.password) {
+       return res.status(401).json({ message: "Please use magic link or Google login, or set a password in settings." });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(401).json({ message: "Invalid email or password" });
+
+    if (!user.isVerified) return res.status(401).json({ message: "Please verify your email before logging in" });
+
+    if (user.mfaEnabled) {
+      const mfaToken = jwt.sign({ id: user._id, type: 'mfa_challenge' }, process.env.JWT_SECRET, { expiresIn: '5m' });
+      return res.json({ mfaRequired: true, mfaToken });
+    }
+
+    const authToken = generateToken(user._id, user.tokenVersion);
+
+    res.cookie("tf_token", authToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    if (sessionId) {
+      const io = req.app.get("io");
+      io.to(`login:${sessionId}`).emit("login-success", { token: authToken, user });
+    }
+
+    res.json({ token: authToken, user, message: "Successfully logged in!" });
+    await logAudit(user._id, user.name, "user_login", null, { method: "password" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Google OAuth Registration/Login
+ */
+exports.googleAuth = async (req, res, next) => {
+  try {
+    const { idToken, sessionId } = req.body;
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    let user = await User.findOne({ email }).select("+password");
+
+    if (user) {
+      // Link google account if not linked
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.isVerified = true; // Google accounts are verified
+        if (!user.avatar) user.avatar = picture;
+        await user.save();
+      }
+    } else {
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        isVerified: true,
+        avatar: picture,
+      });
+      await logAudit(user._id, user.name, "user_registered", null, { email: user.email, method: "google" });
+    }
+
+    if (user.mfaEnabled) {
+      const mfaToken = jwt.sign({ id: user._id, type: 'mfa_challenge' }, process.env.JWT_SECRET, { expiresIn: '5m' });
+      return res.json({ mfaRequired: true, mfaToken });
+    }
+
+    const authToken = generateToken(user._id, user.tokenVersion);
+
+    res.cookie("tf_token", authToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    if (sessionId) {
+      const io = req.app.get("io");
+      io.to(`login:${sessionId}`).emit("login-success", { token: authToken, user });
+    }
+
+    res.json({ token: authToken, user, message: "Successfully logged in!" });
+    await logAudit(user._id, user.name, "user_login", null, { method: "google" });
+  } catch (err) {
+    console.error("Google Auth Error:", err);
+    res.status(401).json({ message: "Google authentication failed" });
+  }
+};
+
+/**
+ * Set or Change Password
+ */
+exports.setPassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = req.user;
+    
+    // If user already has a password, verify the current one
+    if (user.password) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required to change password." });
+      }
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Incorrect current password." });
+      }
+    }
+    
+    user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+    
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    next(err);
+  }
+};

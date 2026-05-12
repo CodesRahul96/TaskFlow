@@ -15,8 +15,15 @@ exports.protect = async (req, res, next) => {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select("-password");
+    req.user = await User.findById(decoded.id).select("+password");
     if (!req.user) return res.status(401).json({ message: "User not found" });
+
+    // Verify token version for session revocation
+    const tokenVersion = decoded.tokenVersion || 0;
+    if (tokenVersion !== req.user.tokenVersion) {
+      return res.status(401).json({ message: "Session expired. Please log in again." });
+    }
+
     next();
   } catch {
     res.status(401).json({ message: "Token invalid or expired" });
