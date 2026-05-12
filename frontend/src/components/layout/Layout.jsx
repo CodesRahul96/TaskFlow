@@ -23,7 +23,7 @@ export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, isGuest, logout } = useAuthStore();
+  const { user, isGuest, logout, updateProfile } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -44,6 +44,14 @@ export default function Layout() {
     handleResize(); // Initial check
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleHeaderThemeToggle = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    toggleTheme();
+    if (!isGuest) {
+      updateProfile({ theme: nextTheme });
+    }
+  };
 
   return (
     <div className="flex h-screen bg-bg-primary overflow-hidden">
@@ -182,7 +190,7 @@ export default function Layout() {
           
           <div className="flex items-center gap-4">
              <button 
-               onClick={toggleTheme}
+               onClick={handleHeaderThemeToggle}
                className="p-2.5 text-text-muted hover:text-text-primary hover:bg-surface-2 rounded-xl transition-all group active:scale-95"
                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
              >
