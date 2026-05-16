@@ -232,7 +232,12 @@ function LoginContent() {
 
                 {loginMode === 'password' && (
                   <div className="animate-fade-in">
-                    <label className="block text-xs font-bold text-text-muted uppercase tracking-widest mb-2.5">Password</label>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <label className="block text-xs font-bold text-text-muted uppercase tracking-widest">Password</label>
+                      <Link to="/forgot-password" className="text-[10px] font-bold text-accent-primary hover:text-accent-hover uppercase tracking-widest transition-colors">
+                        Forgot Password?
+                      </Link>
+                    </div>
                     <div className="relative group">
                       <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
                       <input

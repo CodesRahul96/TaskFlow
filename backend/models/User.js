@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema({
   verificationToken: { type: String },
   loginToken: { type: String },
   loginTokenExpires: { type: Date },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date },
   mfaEnabled: { type: Boolean, default: false },
   mfaSecret: { type: String, select: false },
   googleId: { type: String, sparse: true, unique: true },

@@ -160,6 +160,42 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
+   * Forgot Password
+   */
+  forgotPassword: async (email, captchaToken) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/forgot-password', { email, captchaToken });
+      set({ loading: false });
+      toast.success(data.message || 'If your email is registered, you will receive a reset link.');
+      return { success: true, message: data.message };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Request failed';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  /**
+   * Reset Password
+   */
+  resetPassword: async (token, newPassword) => {
+    set({ loading: true });
+    try {
+      const { data } = await api.post('/auth/reset-password', { token, newPassword });
+      set({ loading: false });
+      toast.success(data.message || 'Password reset successfully');
+      return { success: true, message: data.message };
+    } catch (err) {
+      set({ loading: false });
+      const msg = err.response?.data?.message || 'Password reset failed';
+      toast.error(msg);
+      return { success: false, message: msg };
+    }
+  },
+
+  /**
    * Verifies the user's email address.
    * Completes the registration loop using a verification token.
    * @param {string} token

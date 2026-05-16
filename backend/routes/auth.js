@@ -45,6 +45,19 @@ router.post("/set-password", protect,
   ],
   validate, ctrl.setPassword);
 
+router.post("/forgot-password", authLimiter,
+  [
+    body("email").trim().isEmail().withMessage("Invalid email format").normalizeEmail()
+  ],
+  validate, ctrl.forgotPassword);
+
+router.post("/reset-password", authLimiter,
+  [
+    body("token").notEmpty().withMessage("Reset token is required"),
+    body("newPassword").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
+  ],
+  validate, ctrl.resetPassword);
+
 router.get("/verify-email", ctrl.verifyEmail);
 router.get("/verify-login", ctrl.verifyLogin);
 router.post("/logout", ctrl.logout);

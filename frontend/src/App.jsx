@@ -26,6 +26,8 @@ const OfflinePage = lazy(() => import("./pages/OfflinePage"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const VerifyLogin = lazy(() => import("./pages/VerifyLogin"));
 const SharePage = lazy(() => import("./pages/SharePage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 
 /**
  * Bootstrap Loader: Visual feedback during deferred component initialization.
@@ -44,7 +46,7 @@ function PageLoader() {
  */
 function AppRoutes() {
   const { token, isGuest, isOnline, setOnline } = useAuthStore();
-  const { joinTaskByToken } = useTaskStore();
+  const { joinTaskByToken, fetchTasks } = useTaskStore();
   
   // Initialize Socket.IO bridge upon identity verification
   useSocket(!!token);
@@ -60,6 +62,26 @@ function AppRoutes() {
       }
     }
   }, [token, isGuest, joinTaskByToken]);
+
+  /**
+   * Auto-Refresh / State Reconciliation:
+   * Synchronizes data smoothly in the background when the user returns to the app tab.
+   */
+  useEffect(() => {
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible' && (token || isGuest)) {
+        fetchTasks(isGuest, true); // Trigger silent background fetch
+      }
+    };
+
+    window.addEventListener("visibilitychange", handleFocus);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("visibilitychange", handleFocus);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [token, isGuest, fetchTasks]);
 
   /**
    * Resilience Protocol: Monitors connectivity state for local-merging transitions.
@@ -94,6 +116,8 @@ function AppRoutes() {
         <Route path="/register" element={!isAuth ? <Register /> : <Navigate to="/" replace />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/verify-login" element={<VerifyLogin />} />
+        <Route path="/forgot-password" element={!isAuth ? <ForgotPasswordPage /> : <Navigate to="/" replace />} />
+        <Route path="/reset-password" element={!isAuth ? <ResetPasswordPage /> : <Navigate to="/" replace />} />
         <Route path="/share/:token" element={<SharePage />} />
         <Route
           path="/"

@@ -540,3 +540,78 @@ exports.setPassword = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * Forgot Password
+ */
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { email, captchaToken } = req.body;
+    
+    const { success, score } = await verifyRecaptcha(captchaToken);
+    if (!success) {
+      return res.status(400).json({ message: "Security verification failed.", score });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't leak whether the email exists
+      return res.json({ message: "If your email is registered, you will receive a password reset link shortly." });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const message = `taskflow\n\nYou requested a password reset. Click the link below to set a new password:\n${resetUrl}\n\nThis link expires in 15 minutes. If you did not request this, please ignore this email.`;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: `Password Reset Request`,
+        message,
+        html: `<p>You requested a password reset. Click <a href="${resetUrl}">here</a> to set a new password. This link expires in 15 minutes.</p>`,
+      });
+      res.json({ message: "If your email is registered, you will receive a password reset link shortly." });
+    } catch (err) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      return res.status(500).json({ message: "Error sending reset email." });
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Reset Password
+ */
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired password reset token" });
+    }
+
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    user.tokenVersion = (user.tokenVersion || 0) + 1; // invalidate existing sessions
+    await user.save();
+
+    res.json({ message: "Password has been successfully reset. You can now log in." });
+    await logAudit(user._id, user.name, "password_reset", null, {});
+  } catch (err) {
+    next(err);
+  }
+};
+

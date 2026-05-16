@@ -20,7 +20,7 @@ function TimeBlockEventModal({ event, onClose, onDelete }) {
   if (!event) return null;
   return (
     <div className="fixed inset-0 bg-bg-primary/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-bg-secondary border border-border-subtle rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+      <div className="bg-bg-secondary border border-border-subtle rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-4 h-4 rounded-lg shadow-sm" style={{ backgroundColor: event.color }} />
@@ -87,14 +87,14 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden bg-surface-1/10">
+    <div className="flex flex-col flex-1 overflow-hidden bg-surface-1/5">
       {/* Day headers */}
-      <div className="grid grid-cols-4 md:grid-cols-8 border-b border-border-subtle flex-shrink-0 bg-surface-1/5">
-        <div className="p-3 border-r border-border-subtle/50" />
+      <div className="grid grid-cols-4 md:grid-cols-8 border-b border-border-subtle/50 flex-shrink-0 bg-surface-1/10 backdrop-blur-sm">
+        <div className="p-3 border-r border-border-subtle/30" />
         {days.map((day, idx) => (
           <div
             key={day.toString()}
-            className={`p-4 text-center border-l border-border-subtle/50 ${isToday(day) ? 'bg-accent-primary/5' : ''} ${idx >= 3 ? 'hidden md:block' : ''}`}
+            className={`p-4 text-center border-l border-border-subtle/30 ${isToday(day) ? 'bg-accent-primary/[0.03]' : ''} ${idx >= 3 ? 'hidden md:block' : ''}`}
           >
             <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">{format(day, 'EEE')}</p>
             <p className={`text-xl font-display font-black mt-1 ${isToday(day) ? 'text-accent-primary' : 'text-text-primary'}`}>
@@ -108,10 +108,10 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <div className="grid grid-cols-4 md:grid-cols-8 relative" style={{ height: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}>
           {/* Hour labels */}
-          <div className="col-span-1 border-r border-border-subtle/50 bg-surface-1/5">
+          <div className="col-span-1 border-r border-border-subtle/30 bg-surface-1/10">
             {HOURS.map(hour => (
               <div key={hour} style={{ height: `${HOUR_HEIGHT}px` }} className="flex items-start justify-end pr-4 pt-1">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-tighter opacity-60">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-tighter opacity-50">
                   {format(setHours(new Date(), hour), 'h a')}
                 </span>
               </div>
@@ -122,14 +122,14 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
           {days.map((day, di) => (
             <div
               key={day.toString()}
-              className={`col-span-1 relative border-l border-border-subtle/30 ${isToday(day) ? 'bg-accent-primary/[0.02]' : ''} ${di >= 3 ? 'hidden md:block' : ''}`}
+              className={`col-span-1 relative border-l border-border-subtle/20 ${isToday(day) ? 'bg-accent-primary/[0.01]' : ''} ${di >= 3 ? 'hidden md:block' : ''}`}
               style={{ height: `${(END_HOUR - START_HOUR + 1) * HOUR_HEIGHT}px` }}
             >
               {/* Hour lines */}
               {HOURS.map(hour => (
                 <div
                   key={hour}
-                  className="absolute left-0 right-0 border-t border-border-subtle/10 cursor-alias hover:bg-accent-primary/[0.03] transition-colors"
+                  className="absolute left-0 right-0 border-t border-border-subtle/10 cursor-alias hover:bg-accent-primary/[0.02] transition-colors"
                   style={{ top: `${(hour - START_HOUR) * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
                   onClick={() => {
                     const slotTime = setMinutes(setHours(new Date(day), hour), 0);
@@ -145,8 +145,8 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
                   style={{ top: nowStyle.top }}
                 >
                   <div className="flex items-center translate-y-[-50%]">
-                    <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-sm -ml-1" />
-                    <div className="flex-1 h-px bg-danger/50" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-lg shadow-danger/50 -ml-1 border border-white dark:border-bg-primary" />
+                    <div className="flex-1 h-px bg-gradient-to-r from-danger to-transparent" />
                   </div>
                 </div>
               )}
@@ -157,13 +157,14 @@ function WeekView({ date, events, onEventClick, onSlotClick }) {
                 return (
                   <div
                     key={event.id}
-                    className="absolute left-1 right-1 rounded-lg px-2 py-1.5 cursor-pointer hover:brightness-110 active:scale-[0.98] transition-all z-20 overflow-hidden shadow-sm"
-                    style={{ ...style, backgroundColor: event.color + '33', borderLeft: `3px solid ${event.color}` }}
+                    className="absolute left-1.5 right-1.5 rounded-xl px-3 py-2.5 cursor-pointer hover:brightness-105 active:scale-[0.98] transition-all z-20 overflow-hidden shadow-sm border border-border-subtle/30"
+                    style={{ ...style, backgroundColor: event.color + '15', borderLeft: `4px solid ${event.color}` }}
                     onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
                   >
-                    <p className="text-[11px] font-bold text-text-primary leading-tight truncate">{event.title}</p>
-                    <p className="text-[9px] font-bold text-text-muted uppercase tracking-tight mt-0.5">
-                      {format(new Date(event.start), 'h:mm')}
+                    <div className="absolute inset-0 bg-white/5 dark:bg-black/5 pointer-events-none" />
+                    <p className="text-[11px] font-bold text-text-primary leading-tight truncate relative z-10">{event.title}</p>
+                    <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-1 relative z-10">
+                      {format(new Date(event.start), 'h:mm a')}
                     </p>
                   </div>
                 );
@@ -184,26 +185,27 @@ function MonthView({ date, events, onEventClick }) {
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   return (
-    <div className="flex-1 overflow-hidden flex flex-col bg-surface-1/10">
-      <div className="grid grid-cols-7 border-b border-border-subtle flex-shrink-0 bg-surface-1/5">
+    <div className="flex-1 overflow-hidden flex flex-col bg-surface-1/5">
+      <div className="grid grid-cols-7 border-b border-border-subtle/50 flex-shrink-0 bg-surface-1/10 backdrop-blur-sm">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
           <div key={d} className="p-4 text-center text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">{d}</div>
         ))}
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="grid grid-cols-7 min-h-full border-l border-t border-border-subtle/20">
+        <div className="grid grid-cols-7 min-h-full border-l border-t border-border-subtle/10">
           {days.map(day => {
             const dayEvents = events.filter(e => isSameDay(new Date(e.start), day));
+            const isCurrentMonth = isSameMonth(day, date);
             return (
               <div
                 key={day.toString()}
-                className={`border-r border-b border-border-subtle/20 p-2 min-h-[120px] transition-colors ${
-                  !isSameMonth(day, date) ? 'opacity-20' : ''
-                } ${isToday(day) ? 'bg-accent-primary/[0.03]' : 'hover:bg-surface-1/20'}`}
+                className={`border-r border-b border-border-subtle/10 p-3 min-h-[120px] transition-colors ${
+                  !isCurrentMonth ? 'bg-surface-1/5 opacity-40' : ''
+                } ${isToday(day) ? 'bg-accent-primary/[0.02]' : 'hover:bg-surface-1/20'}`}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`text-sm font-black w-8 h-8 flex items-center justify-center rounded-xl transition-all ${
-                    isToday(day) ? 'bg-accent-primary text-white shadow-blue' : 'text-text-secondary'
+                  <span className={`text-sm font-black w-7 h-7 flex items-center justify-center rounded-xl transition-all ${
+                    isToday(day) ? 'bg-accent-primary text-white shadow-blue' : isCurrentMonth ? 'text-text-secondary' : 'text-text-muted'
                   }`}>
                     {format(day, 'd')}
                   </span>
@@ -213,8 +215,8 @@ function MonthView({ date, events, onEventClick }) {
                     <div
                       key={event.id}
                       onClick={() => onEventClick(event)}
-                      className="text-[10px] font-bold px-2 py-1 rounded-lg cursor-pointer hover:brightness-110 active:scale-95 transition-all truncate text-text-primary border-l-2"
-                      style={{ backgroundColor: event.color + '22', borderColor: event.color }}
+                      className="text-[10px] font-bold px-2 py-1 rounded-lg cursor-pointer hover:brightness-105 active:scale-95 transition-all truncate text-text-primary border-l-2"
+                      style={{ backgroundColor: event.color + '15', borderColor: event.color }}
                     >
                       {event.title}
                     </div>
@@ -294,9 +296,26 @@ export default function CalendarPage() {
     setShowAddModal(true);
   };
 
+  const handleStartTimeChange = (newStartStr) => {
+    setAddForm(f => {
+      const newStart = new Date(newStartStr);
+      const currentEnd = new Date(f.endTime);
+      let newEndStr = f.endTime;
+      if (isNaN(currentEnd.getTime()) || newStart >= currentEnd) {
+        const newEnd = new Date(newStart.getTime() + 60 * 60 * 1000);
+        newEndStr = newEnd.toISOString().slice(0, 16);
+      }
+      return { ...f, startTime: newStartStr, endTime: newEndStr };
+    });
+  };
+
   const handleAddBlock = async (e) => {
     e.preventDefault();
     if (!addForm.taskId) { setAddError('Please select a task'); return; }
+    if (new Date(addForm.startTime) >= new Date(addForm.endTime)) {
+      setAddError('End time must be after start time');
+      return;
+    }
     setAddLoading(true);
     setAddError('');
     try {
@@ -318,35 +337,35 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col h-screen bg-bg-primary animate-fade-in overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 md:px-10 py-6 border-b border-border-subtle bg-surface-1/20 flex-shrink-0 gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 md:px-10 py-5 border-b border-border-subtle bg-surface-1/10 backdrop-blur-md flex-shrink-0 gap-6">
         <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
           <div>
             <h1 className="text-2xl font-display font-black text-text-primary tracking-tight">Schedule</h1>
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1.5">{title}</p>
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1 px-1 border-l-2 border-accent-primary">{title}</p>
           </div>
-          <div className="flex items-center gap-2 bg-surface-1 p-1.5 rounded-2xl border border-border-subtle/50 h-fit">
-            <button onClick={() => navigate(-1)} className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-2 transition-all rounded-xl">
-              <ChevronLeft size={18} />
+          <div className="flex items-center gap-1 bg-surface-2/50 p-1 rounded-full border border-border-subtle/30 h-fit">
+            <button onClick={() => navigate(-1)} className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-1 transition-all rounded-full">
+              <ChevronLeft size={16} />
             </button>
             <button
                onClick={() => setCurrentDate(new Date())}
-               className="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all hover:bg-surface-2 rounded-xl"
+               className="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-text-primary transition-all hover:bg-surface-1 rounded-full"
             >
               Today
             </button>
-            <button onClick={() => navigate(1)} className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-2 transition-all rounded-xl">
-              <ChevronRight size={18} />
+            <button onClick={() => navigate(1)} className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-1 transition-all rounded-full">
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 h-fit">
-          <div className="flex items-center bg-surface-1 p-1.5 rounded-2xl border border-border-subtle/50">
+          <div className="flex items-center bg-surface-2/50 p-1 rounded-full border border-border-subtle/30">
             {['week', 'month'].map(v => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-full transition-all ${
                   view === v ? 'bg-accent-primary text-white shadow-blue' : 'text-text-muted hover:text-text-primary'
                 }`}
               >
@@ -354,8 +373,8 @@ export default function CalendarPage() {
               </button>
             ))}
           </div>
-          <button onClick={() => openAddModal()} className="btn-primary flex items-center gap-2 px-6 py-3.5 shadow-blue">
-            <Plus size={18} /> <span className="font-bold uppercase tracking-widest text-[11px]">Schedule</span>
+          <button onClick={() => openAddModal()} className="btn-primary flex items-center gap-2 px-6 py-3 shadow-blue">
+            <Plus size={16} strokeWidth={3} /> <span className="font-bold uppercase tracking-widest text-[10px]">Schedule</span>
           </button>
         </div>
       </div>
@@ -389,7 +408,7 @@ export default function CalendarPage() {
 
       {showAddModal && (
         <div className="fixed inset-0 bg-bg-primary/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAddModal(false)}>
-          <div className="bg-bg-secondary border border-border-subtle rounded-3xl p-8 max-w-md w-full shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+          <div className="bg-bg-secondary border border-border-subtle rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="font-display font-black text-xl text-text-primary tracking-tight">Schedule Block</h3>
@@ -423,7 +442,7 @@ export default function CalendarPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2.5">Start</label>
-                  <input type="datetime-local" required className="input-field text-xs font-bold" value={addForm.startTime} onChange={e => setAddForm(f => ({ ...f, startTime: e.target.value }))} />
+                  <input type="datetime-local" required className="input-field text-xs font-bold" value={addForm.startTime} onChange={e => handleStartTimeChange(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2.5">End</label>

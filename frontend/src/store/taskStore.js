@@ -81,8 +81,8 @@ const useTaskStore = create((set, get) => ({
    * Synchronizes tasks from the remote node or local persistence.
    * Implements query-parameter orchestration for server-side filtering.
    */
-  fetchTasks: async (isGuest = false) => {
-    set({ loading: true });
+  fetchTasks: async (isGuest = false, isBackground = false) => {
+    if (!isBackground) set({ loading: true });
     if (isGuest) {
       const guestTasks = getGuestTasks();
       set({ tasks: guestTasks, loading: false });
@@ -109,7 +109,9 @@ const useTaskStore = create((set, get) => ({
       set({ tasks: deduplicateTasks(data.tasks), loading: false });
     } catch (err) {
       set({ loading: false });
-      toast.error('Failed to synchronize workspace.');
+      if (!isBackground) {
+        toast.error('Failed to synchronize workspace.');
+      }
     }
   },
 
@@ -322,6 +324,34 @@ const useTaskStore = create((set, get) => ({
       return { success: true };
     } catch (err) {
       toast.error(err.response?.data?.message || 'Scheduling collision.');
+      return { success: false };
+    }
+  },
+
+  /**
+   * Removes a "Time-Block" from a task node.
+   */
+  deleteTimeBlock: async (taskId, blockId, isGuest = false) => {
+    if (isGuest) {
+      const tasks = get().tasks.map(t => {
+        if (t._id !== taskId) return t;
+        return { ...t, timeBlocks: (t.timeBlocks || []).filter(b => b._id !== blockId) };
+      });
+      saveGuestTasks(tasks);
+      set({ tasks });
+      toast.success('Time slot removed.');
+      return { success: true };
+    }
+    try {
+      const { data } = await api.delete(`/tasks/${taskId}/timeblocks/${blockId}`);
+      set(state => ({
+        tasks: state.tasks.map(t => t._id.toString() === taskId.toString() ? data.task : t),
+        selectedTask: state.selectedTask?._id?.toString() === taskId.toString() ? data.task : state.selectedTask,
+      }));
+      toast.success('Time slot removed.');
+      return { success: true };
+    } catch (err) {
+      toast.error('Failed to remove time slot.');
       return { success: false };
     }
   },
