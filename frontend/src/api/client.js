@@ -7,7 +7,7 @@ const api = axios.create({
     ? `${import.meta.env.VITE_API_URL}/api`
     : "/api",
   headers: { "Content-Type": "application/json" },
-  timeout: 15000,
+  timeout: 60000, // Increased timeout for cold-start server wakeups
   withCredentials: true,
 });
 

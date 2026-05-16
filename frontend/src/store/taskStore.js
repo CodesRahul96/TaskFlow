@@ -81,8 +81,8 @@ const useTaskStore = create((set, get) => ({
    * Synchronizes tasks from the remote node or local persistence.
    * Implements query-parameter orchestration for server-side filtering.
    */
-  fetchTasks: async (isGuest = false, isBackground = false) => {
-    if (!isBackground) set({ loading: true });
+  fetchTasks: async (isGuest = false, isBackground = false, retryCount = 0) => {
+    if (!isBackground && retryCount === 0) set({ loading: true });
     if (isGuest) {
       const guestTasks = getGuestTasks();
       set({ tasks: guestTasks, loading: false });
@@ -108,6 +108,19 @@ const useTaskStore = create((set, get) => ({
       const { data } = await api.get(`/tasks?${params}`);
       set({ tasks: deduplicateTasks(data.tasks), loading: false });
     } catch (err) {
+      const isNetworkError = !err.response || err.response.status >= 500;
+      
+      // Auto-retry up to 3 times for cold-start wakeups or flaky connections
+      if (isNetworkError && retryCount < 3) {
+        if (!isBackground && retryCount === 0) {
+          toast('Waking up secure workspace...', { icon: '🚀', duration: 4000 });
+        }
+        setTimeout(() => {
+          get().fetchTasks(isGuest, true, retryCount + 1); // Subsequent retries are silent
+        }, (retryCount + 1) * 3000); // Backoff: 3s, 6s, 9s
+        return;
+      }
+
       set({ loading: false });
       if (!isBackground) {
         toast.error('Failed to synchronize workspace.');
