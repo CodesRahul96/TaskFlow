@@ -4,7 +4,7 @@
 
 # Node version and build flags
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   NPM_FLAGS = "--include=dev"
 
 # SPA fallback — all routes serve index.html so React Router works
