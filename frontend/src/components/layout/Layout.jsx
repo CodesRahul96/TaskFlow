@@ -9,6 +9,7 @@ import useAuthStore from '../../store/authStore';
 import BottomNav from './BottomNav';
 import NotificationCenter from '../ui/NotificationCenter';
 import AICompanion from '../ai/AICompanion';
+import useAiStore from '../../store/aiStore';
 import { useTheme } from '../../context/ThemeProvider';
 
 const navItems = [
@@ -44,6 +45,13 @@ export default function Layout() {
     handleResize(); // Initial check
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Close AI companion when navigating to settings
+  useEffect(() => {
+    if (location.pathname.startsWith('/settings')) {
+      useAiStore.getState().setIsOpen(false);
+    }
+  }, [location.pathname]);
 
   const handleHeaderThemeToggle = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light';
@@ -265,7 +273,7 @@ export default function Layout() {
         </footer>
 
         <BottomNav />
-        {user?.showChatbot !== false && <AICompanion />}
+        {user?.showChatbot !== false && !location.pathname.startsWith('/settings') && <AICompanion />}
       </div>
     </div>
   );
